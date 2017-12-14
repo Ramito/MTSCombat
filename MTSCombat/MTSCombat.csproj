@@ -47,6 +47,7 @@
     <Compile Include="Game\StandardPlayerInput.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Render\PrimitiveRenderer.cs" />
     <Compile Include="Simulation\Vehicle\ControlState.cs" />
     <Compile Include="Simulation\DynamicState.cs" />
     <Compile Include="Simulation\SimulationProcessor.cs" />
