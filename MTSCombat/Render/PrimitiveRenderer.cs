@@ -30,22 +30,23 @@ namespace Ranitas.Core.Render
             }
         }
 
-        private void PushVertexData(Vector2 vertex, Color color)
-        {
-            mVertexBufferData[mCurrentIndex].Position = new Vector3(vertex, 0f);
-            mVertexBufferData[mCurrentIndex].Color = color;
-            ++mCurrentIndex;
-        }
-
         public void PushPolygon(List<Vector2> vertexList, Color color)
         {
             Debug.Assert(vertexList.Count >= 3);
+
             PushVertexData(vertexList[0], color);
             foreach(Vector2 vertex in vertexList)
             {
                 PushVertexData(vertex, color);
             }
             PushVertexData(vertexList[vertexList.Count - 1], color);
+        }
+
+        private void PushVertexData(Vector2 vertex, Color color)
+        {
+            mVertexBufferData[mCurrentIndex].Position = new Vector3(vertex, 0f);
+            mVertexBufferData[mCurrentIndex].Color = color;
+            ++mCurrentIndex;
         }
 
         private void SetupVertexBuffer()
