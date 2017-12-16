@@ -48,6 +48,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Render\PrimitiveRenderer.cs" />
+    <Compile Include="Simulation\Vehicle\Asteroids\AsteroidsControls.cs" />
     <Compile Include="Simulation\Vehicle\ControlState.cs" />
     <Compile Include="Simulation\SimulationProcessor.cs" />
     <Compile Include="Simulation\SimulationState.cs" />
