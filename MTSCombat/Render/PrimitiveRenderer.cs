@@ -3,21 +3,15 @@ using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Ranitas.Core.Render
+namespace MTSCombat.Render
 {
     public sealed class PrimitiveRenderer
     {
-        public GraphicsDevice Device { get; private set; }
+        private GraphicsDevice mDevice;
+        private BasicEffect mBasicEffect;
         private VertexBuffer mVertexBuffer;
         private VertexPositionColor[] mVertexBufferData;
         private int mCurrentIndex = -1;
-
-        public void Setup(GraphicsDevice device)
-        {
-            //TODO: Where should the basic effect live??
-            Device = device;
-            SetupVertexBuffer();
-        }
 
         public void Render()
         {
@@ -25,7 +19,7 @@ namespace Ranitas.Core.Render
             {
                 mVertexBuffer.SetData(mVertexBufferData, 0, mCurrentIndex);
                 int triangleCount = mCurrentIndex - 2;
-                Device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, triangleCount);
+                mDevice.DrawPrimitives(PrimitiveType.TriangleStrip, 0, triangleCount);
                 mCurrentIndex = 0;
             }
         }
@@ -52,10 +46,27 @@ namespace Ranitas.Core.Render
         private void SetupVertexBuffer()
         {
             const int kVertexCount = 250 * 6;
-            mVertexBuffer = new VertexBuffer(Device, typeof(VertexPositionColor), kVertexCount, BufferUsage.WriteOnly);
-            Device.SetVertexBuffer(mVertexBuffer);
+            mVertexBuffer = new VertexBuffer(mDevice, typeof(VertexPositionColor), kVertexCount, BufferUsage.WriteOnly);
+            mDevice.SetVertexBuffer(mVertexBuffer);
             mVertexBufferData = new VertexPositionColor[kVertexCount];
             mCurrentIndex = 0;
+        }
+
+        public void Setup(GraphicsDevice device, float arenaWidth, float arenaHeight)
+        {
+            mDevice = device;
+            SetupVertexBuffer();
+            SetupCamera(device, arenaWidth, arenaHeight);
+        }
+
+        private void SetupCamera(GraphicsDevice device, float arenaWidth, float arenaHeight)
+        {
+            float aspectRatio = device.Adapter.CurrentDisplayMode.AspectRatio;
+            mBasicEffect = new BasicEffect(device);
+            mBasicEffect.VertexColorEnabled = true;
+            mBasicEffect.World = Matrix.CreateTranslation(-arenaWidth * 0.5f, -arenaHeight * 0.5f, 0f);
+            mBasicEffect.View = Matrix.CreateOrthographic(aspectRatio * arenaHeight, arenaHeight, -100, 100);
+            mBasicEffect.CurrentTechnique.Passes[0].Apply();
         }
     }
 }

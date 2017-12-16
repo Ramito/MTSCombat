@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MTSCombat.Render;
 
 namespace MTSCombat
 {
@@ -9,13 +10,24 @@ namespace MTSCombat
     /// </summary>
     public class Game1 : Game
     {
-        GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
+        private GraphicsDeviceManager mGraphics;
+        private PrimitiveRenderer mRenderer;
+        private MTSCombatGame mMTSGame;
         
         public Game1()
         {
-            graphics = new GraphicsDeviceManager(this);
+            mGraphics = new GraphicsDeviceManager(this);
+            MatchCurrentResolution(mGraphics);
             Content.RootDirectory = "Content";
+            mRenderer = new PrimitiveRenderer();
+            mMTSGame = new MTSCombatGame();
+        }
+
+        private static void MatchCurrentResolution(GraphicsDeviceManager graphics)
+        {
+            graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            //TODO: Toggling full screen makes debugging a pain
         }
 
         /// <summary>
@@ -26,7 +38,11 @@ namespace MTSCombat
         /// </summary>
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
+            RasterizerState rs = new RasterizerState();
+            rs.CullMode = CullMode.None;
+            mGraphics.GraphicsDevice.RasterizerState = rs;
+
+            mRenderer.Setup(mGraphics.GraphicsDevice, 800, 600);
 
             base.Initialize();
         }
@@ -37,9 +53,6 @@ namespace MTSCombat
         /// </summary>
         protected override void LoadContent()
         {
-            // Create a new SpriteBatch, which can be used to draw textures.
-            spriteBatch = new SpriteBatch(GraphicsDevice);
-
             // TODO: use this.Content to load your game content here
         }
 
@@ -75,7 +88,7 @@ namespace MTSCombat
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            // TODO: Add your drawing code here
+            mRenderer.Render();
 
             base.Draw(gameTime);
         }
