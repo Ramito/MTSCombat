@@ -9,7 +9,7 @@ namespace MTSCombat.Simulation
     public sealed class SimulationProcessor
     {
         //Player input gets processed into a ControlState, and AI will provide a control state
-        public SimulationState ProcessState(SimulationState state, Dictionary<uint, ControlState> controllerInputs)
+        public SimulationState ProcessState(SimulationState state, Dictionary<uint, ControlState> controllerInputs, float deltaTime)
         {
             int currentVehicleCount = state.Vehicles.Count;
             int currentProjectileCount = state.Projectiles.Count;
@@ -19,11 +19,10 @@ namespace MTSCombat.Simulation
                 uint controllerID = vehicle.ControllerID;
                 System.Diagnostics.Debug.Assert(controllerInputs.ContainsKey(controllerID));
                 ControlState inputControlState = controllerInputs[controllerID];
-                var stateTuple = new Tuple<Transform2, DynamicState>(vehicle.Transform, vehicle.DynamicState);
-                var processOutput = inputControlState.ProcessState(stateTuple);
+                var processOutput = inputControlState.ProcessState(vehicle.DynamicTransform, deltaTime);
                 VehicleState newVehicleState = new VehicleState();
                 newVehicleState.SetControllerID(controllerID);
-                newVehicleState.SetState(processOutput.Item1, processOutput.Item2, inputControlState);
+                newVehicleState.SetState(processOutput, inputControlState);
                 nextSimState.Vehicles.Add(newVehicleState);
             }
             //TODO PROJECTILES!

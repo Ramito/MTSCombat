@@ -13,12 +13,12 @@ namespace MTSCombat
 
         public const uint kDefaultPlayerID = 0;
 
-        public void Tick()
+        public void Tick(float deltaTime)
         {
             StandardPlayerInput playerInput = StandardPlayerInput.ProcessKeyboard(Keyboard.GetState());
             var playerControl = ActiveState.GetCurrentControlStateForController(kDefaultPlayerID);
             mActiveInput[kDefaultPlayerID] = playerControl.GetNextStateFromInput(playerInput);
-            ActiveState = mSimProcessor.ProcessState(ActiveState, mActiveInput);
+            ActiveState = mSimProcessor.ProcessState(ActiveState, mActiveInput, deltaTime);
         }
     }
 }

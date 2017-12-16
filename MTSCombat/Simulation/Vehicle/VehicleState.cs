@@ -9,8 +9,7 @@ namespace MTSCombat.Simulation
     {
         public uint ControllerID { get; private set; }
         //OPTION: We could blend this bundle with the control base class! (?)
-        public Transform2 Transform { get; private set; }
-        public DynamicState DynamicState { get; private set; }
+        public DynamicTransform2 DynamicTransform { get; private set; }
         public ControlState ControlState { get; private set; }
 
         public void SetControllerID(uint controllerID)
@@ -18,10 +17,9 @@ namespace MTSCombat.Simulation
             ControllerID = controllerID;
         }
 
-        public void SetState(Transform2 transform, DynamicState dynamicState, ControlState controlState)
+        public void SetState(DynamicTransform2 transform, ControlState controlState)
         {
-            Transform = transform;
-            DynamicState = dynamicState;
+            DynamicTransform = transform;
             ControlState = controlState;
         }
     }

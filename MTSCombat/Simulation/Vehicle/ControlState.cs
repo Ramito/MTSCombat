@@ -5,8 +5,8 @@ namespace MTSCombat.Simulation
 {
     public abstract class ControlState
     {
-        public abstract Tuple<Transform2, DynamicState> ProcessState(Tuple<Transform2, DynamicState> state);
+        public abstract DynamicTransform2 ProcessState(DynamicTransform2 state, float deltaTime);
         public abstract ControlState GetNextStateFromInput(StandardPlayerInput playerInput);
-        public abstract void GetPossibleActions(List<ControlState> resultingControls);
+        public abstract List<ControlState> GetPossibleActions();
     }
 }
