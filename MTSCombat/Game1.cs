@@ -47,7 +47,7 @@ namespace MTSCombat
             mPrimitiveRenderer.Setup(mGraphics.GraphicsDevice, 800, 600);
 
             mMTSGame = new MTSCombatGame(2);
-            AsteroidsControlData data = new AsteroidsControlData(15f, 30f, 1f);
+            AsteroidsControlData data = new AsteroidsControlData(20f, 30f, 2f);
             AsteroidsControls asteroidsControls = new AsteroidsControls(data);
             VehicleState state = new VehicleState();
             state.SetControllerID(0);

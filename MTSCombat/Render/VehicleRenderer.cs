@@ -29,7 +29,7 @@ namespace MTSCombat
             }
         }
 
-        const double kDrawAngle = 2.1f;
+        const double kDrawAngle = 2.25f;
         private readonly static double kCosDrawAngle = Math.Cos(kDrawAngle);
         private readonly static double kSinDrawAngle = Math.Sin(kDrawAngle);
         private void WriteVerticesOnHash(VehicleState vehicle)

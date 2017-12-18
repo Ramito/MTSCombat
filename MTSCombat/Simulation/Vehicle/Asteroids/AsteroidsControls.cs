@@ -24,7 +24,7 @@ namespace MTSCombat.Simulation
 
         public override ControlState GetNextStateFromInput(StandardPlayerInput playerInput)
         {
-            return new AsteroidsControls(playerInput.VerticalInput, playerInput.HorizontalInput, Data);
+            return new AsteroidsControls(playerInput.VerticalInput, playerInput.RotationInput, Data);
         }
 
         public override List<ControlState> GetPossibleActions()
