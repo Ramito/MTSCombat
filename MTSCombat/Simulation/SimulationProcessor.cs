@@ -1,8 +1,5 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MTSCombat.Simulation
 {
@@ -25,7 +22,12 @@ namespace MTSCombat.Simulation
                 newVehicleState.SetState(processOutput, inputControlState);
                 nextSimState.Vehicles.Add(newVehicleState);
             }
-            //TODO PROJECTILES!
+            foreach (var projectile in state.Projectiles)
+            {
+                Vector2 nextPosition = projectile.Position + deltaTime * projectile.Velocity;
+                DynamicPosition2 nextProjectileState = new DynamicPosition2(nextPosition, projectile.Velocity);
+                nextSimState.Projectiles.Add(nextProjectileState);
+            }
             return nextSimState;
         }
     }
