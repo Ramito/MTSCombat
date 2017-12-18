@@ -11,6 +11,9 @@ namespace MTSCombat
     /// </summary>
     public class Game1 : Game
     {
+
+        private const int kArenaWidth = 800;
+        private const int kArenaHeight = 600;
         private GraphicsDeviceManager mGraphics;
         private PrimitiveRenderer mPrimitiveRenderer;
         private VehicleRenderer mVehicleRenderer;
@@ -44,14 +47,14 @@ namespace MTSCombat
             rs.CullMode = CullMode.None;
             mGraphics.GraphicsDevice.RasterizerState = rs;
 
-            mPrimitiveRenderer.Setup(mGraphics.GraphicsDevice, 800, 600);
+            mPrimitiveRenderer.Setup(mGraphics.GraphicsDevice, kArenaWidth, kArenaHeight);
 
             mMTSGame = new MTSCombatGame(2);
             AsteroidsControlData data = new AsteroidsControlData(20f, 30f, 2f);
             AsteroidsControls asteroidsControls = new AsteroidsControls(data);
             VehicleState state = new VehicleState();
             state.SetControllerID(0);
-            state.SetState(5f, new DynamicTransform2(), asteroidsControls);
+            state.SetState(5f, new DynamicTransform2(new Vector2(kArenaWidth / 2, kArenaHeight / 2), new Orientation2(0f)), asteroidsControls);
             mMTSGame.AddVehicle(state);
 
             base.Initialize();
