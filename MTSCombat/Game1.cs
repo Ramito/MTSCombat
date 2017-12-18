@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MTSCombat.Render;
+using MTSCombat.Simulation;
 
 namespace MTSCombat
 {
@@ -21,7 +22,7 @@ namespace MTSCombat
             MatchCurrentResolution(mGraphics);
             Content.RootDirectory = "Content";
             mPrimitiveRenderer = new PrimitiveRenderer();
-            mMTSGame = new MTSCombatGame();
+            mVehicleRenderer = new VehicleRenderer();
         }
 
         private static void MatchCurrentResolution(GraphicsDeviceManager graphics)
@@ -44,7 +45,14 @@ namespace MTSCombat
             mGraphics.GraphicsDevice.RasterizerState = rs;
 
             mPrimitiveRenderer.Setup(mGraphics.GraphicsDevice, 800, 600);
-            mVehicleRenderer = new VehicleRenderer();
+
+            mMTSGame = new MTSCombatGame(2);
+            AsteroidsControlData data = new AsteroidsControlData(15f, 30f, 1f);
+            AsteroidsControls asteroidsControls = new AsteroidsControls(data);
+            VehicleState state = new VehicleState();
+            state.SetControllerID(0);
+            state.SetState(5f, new DynamicTransform2(), asteroidsControls);
+            mMTSGame.AddVehicle(state);
 
             base.Initialize();
         }
