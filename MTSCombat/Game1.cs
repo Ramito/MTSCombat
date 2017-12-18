@@ -11,7 +11,8 @@ namespace MTSCombat
     public class Game1 : Game
     {
         private GraphicsDeviceManager mGraphics;
-        private PrimitiveRenderer mRenderer;
+        private PrimitiveRenderer mPrimitiveRenderer;
+        private VehicleRenderer mVehicleRenderer;
         private MTSCombatGame mMTSGame;
         
         public Game1()
@@ -19,7 +20,7 @@ namespace MTSCombat
             mGraphics = new GraphicsDeviceManager(this);
             MatchCurrentResolution(mGraphics);
             Content.RootDirectory = "Content";
-            mRenderer = new PrimitiveRenderer();
+            mPrimitiveRenderer = new PrimitiveRenderer();
             mMTSGame = new MTSCombatGame();
         }
 
@@ -42,7 +43,8 @@ namespace MTSCombat
             rs.CullMode = CullMode.None;
             mGraphics.GraphicsDevice.RasterizerState = rs;
 
-            mRenderer.Setup(mGraphics.GraphicsDevice, 800, 600);
+            mPrimitiveRenderer.Setup(mGraphics.GraphicsDevice, 800, 600);
+            mVehicleRenderer = new VehicleRenderer();
 
             base.Initialize();
         }
@@ -77,6 +79,8 @@ namespace MTSCombat
 
             // TODO: Add your update logic here
 
+            mMTSGame.Tick((float)TargetElapsedTime.TotalSeconds);
+
             base.Update(gameTime);
         }
 
@@ -88,7 +92,8 @@ namespace MTSCombat
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            mRenderer.Render();
+            mVehicleRenderer.RenderVehicles(mMTSGame.ActiveState.Vehicles, mPrimitiveRenderer);
+            mPrimitiveRenderer.Render();
 
             base.Draw(gameTime);
         }

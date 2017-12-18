@@ -19,7 +19,7 @@ namespace MTSCombat.Simulation
                 var processOutput = inputControlState.ProcessState(vehicle.DynamicTransform, deltaTime);
                 VehicleState newVehicleState = new VehicleState();
                 newVehicleState.SetControllerID(controllerID);
-                newVehicleState.SetState(processOutput, inputControlState);
+                newVehicleState.SetState(vehicle.Size, processOutput, inputControlState);
                 nextSimState.Vehicles.Add(newVehicleState);
             }
             foreach (var projectile in state.Projectiles)

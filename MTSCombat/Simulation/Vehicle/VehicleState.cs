@@ -8,7 +8,7 @@ namespace MTSCombat.Simulation
     public class VehicleState
     {
         public uint ControllerID { get; private set; }
-        //OPTION: We could blend this bundle with the control base class! (?)
+        public float Size { get; private set; } //Represents a radius
         public DynamicTransform2 DynamicTransform { get; private set; }
         public ControlState ControlState { get; private set; }
 
@@ -17,8 +17,9 @@ namespace MTSCombat.Simulation
             ControllerID = controllerID;
         }
 
-        public void SetState(DynamicTransform2 transform, ControlState controlState)
+        public void SetState(float size, DynamicTransform2 transform, ControlState controlState)
         {
+            Size = size;
             DynamicTransform = transform;
             ControlState = controlState;
         }
