@@ -25,6 +25,7 @@ namespace MTSCombat
         {
             PlayerData playerData = new PlayerData(gunMount);
             mSimProcessor.RegisterVehicle(RegisteredPlayers, playerData, vehicle);
+            ++RegisteredPlayers;
         }
 
         public void Tick(float deltaTime)
