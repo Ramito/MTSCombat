@@ -47,7 +47,8 @@ namespace MTSCombat.Simulation
                 GunState currentGunState = vehicle.GunState;
                 PlayerData playerData = mSimulationData.GetData(controllerID);
                 GunMount gunMount = playerData.GunMount;
-                GunState nextGunState = ProcessGunstate(gunMount, currentGunState, inputControlState.GunTriggerDown(), deltaTime, out bool projectileFired);
+                bool projectileFired;
+                GunState nextGunState = ProcessGunstate(gunMount, currentGunState, inputControlState.GunTriggerDown(), deltaTime, out projectileFired);
                 if (projectileFired)
                 {
                     Vector2 gunLocalOffset = gunMount.LocalMountOffsets[currentGunState.NextGunToFire];
