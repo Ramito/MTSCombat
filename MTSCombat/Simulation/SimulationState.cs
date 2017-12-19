@@ -26,5 +26,29 @@ namespace MTSCombat.Simulation
             }
             return null;
         }
+
+        public VehicleState GetVehicleFor(uint controllerID)
+        {
+            foreach (var vehicle in Vehicles)
+            {
+                if (vehicle.ControllerID == controllerID)
+                {
+                    return vehicle;
+                }
+            }
+            return null;
+        }
+
+        public VehicleState GetTargetVehicleFor(uint controllerID)
+        {
+            foreach (var vehicle in Vehicles)
+            {
+                if (vehicle.ControllerID != controllerID)
+                {
+                    return vehicle;
+                }
+            }
+            return null;
+        }
     }
 }

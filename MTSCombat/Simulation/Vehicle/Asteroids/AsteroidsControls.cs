@@ -14,7 +14,16 @@ namespace MTSCombat.Simulation
         public readonly float RelativeRotation;
         private readonly bool mTrigger;
 
-        public AsteroidsControls(AsteroidsControlData data) : this(0f, 0f, false, data) { }
+        private static Dictionary<AsteroidsControlData, List<ControlState>> sPossibleActions = new Dictionary<AsteroidsControlData, List<ControlState>>();
+
+        public AsteroidsControls(AsteroidsControlData data) : this(0f, 0f, false, data)
+        {
+            if (!sPossibleActions.ContainsKey(Data))
+            {
+                sPossibleActions[data] = null;  //Prevent stack overflow... dirty... I know...
+                sPossibleActions[data] = PopulatePossibleActions();
+            }
+        }
 
         public AsteroidsControls(float thrust, float rotation, bool trigger, AsteroidsControlData data)
         {
@@ -34,10 +43,10 @@ namespace MTSCombat.Simulation
             return mTrigger;
         }
 
-        public override List<ControlState> GetPossibleActions()
+        private List<ControlState> PopulatePossibleActions()
         {
             const int kCombinations = 18;
-            List<ControlState> resultingControls = new List<ControlState>(kCombinations);
+            var possibleActions = new List<ControlState>(kCombinations);
             for (int i = 0; i < 2; ++i)
             {
                 bool trigger = i == 0;
@@ -47,12 +56,19 @@ namespace MTSCombat.Simulation
                     for (int rotation = -1; rotation <= 1; ++rotation)
                     {
                         float possibleRotation = (float)rotation;
-                        resultingControls.Add(new AsteroidsControls(possibleThrust, possibleRotation, trigger, Data));
+                        possibleActions.Add(new AsteroidsControls(possibleThrust, possibleRotation, trigger, Data));
                     }
                 }
             }
-            Debug.Assert(kCombinations == resultingControls.Count);
-            return resultingControls;
+            Debug.Assert(kCombinations == possibleActions.Count);
+            return possibleActions;
+        }
+
+        public override List<ControlState> GetPossibleActions()
+        {
+            const int kCombinations = 18;
+            Debug.Assert(kCombinations == sPossibleActions[Data].Count);
+            return sPossibleActions[Data];
         }
 
         public override DynamicTransform2 ProcessState(DynamicTransform2 state, float deltaTime)

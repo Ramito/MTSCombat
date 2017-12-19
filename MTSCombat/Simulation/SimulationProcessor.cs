@@ -15,10 +15,15 @@ namespace MTSCombat.Simulation
             mPendingVehicleSpawns = new List<VehicleState>(players);
         }
 
-        public void RegisterVehicle(ushort playerID, PlayerData playerData, VehicleState initialState)
+        public void RegisterVehicle(uint playerID, PlayerData playerData, VehicleState initialState)
         {
             mSimulationData.RegisterPlayer(playerID, playerData);
             mPendingVehicleSpawns.Add(initialState);
+        }
+
+        public GunData GetGunDataFor(uint playerID)
+        {
+            return mSimulationData.GetData(playerID).GunMount.MountedGun;
         }
 
         //Player input gets processed into a ControlState, and AI will provide a control state
