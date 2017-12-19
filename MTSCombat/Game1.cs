@@ -15,7 +15,7 @@ namespace MTSCombat
         private const int kArenaWidth = 1280;
         private const int kArenaHeight = 720;
         private GraphicsDeviceManager mGraphics;
-        private MTSCombatRenderer mVehicleRenderer;
+        private MTSCombatRenderer mMTSCRenderer;
         private MTSCombatGame mMTSGame;
         
         public Game1()
@@ -46,7 +46,7 @@ namespace MTSCombat
 
             PrimitiveRenderer primitiveRenderer = new PrimitiveRenderer();
             primitiveRenderer.Setup(mGraphics.GraphicsDevice, kArenaWidth, kArenaHeight);
-            mVehicleRenderer = new MTSCombatRenderer(primitiveRenderer);
+            mMTSCRenderer = new MTSCombatRenderer(primitiveRenderer);
 
             mMTSGame = new MTSCombatGame(2, kArenaWidth, kArenaHeight);
 
@@ -140,7 +140,7 @@ namespace MTSCombat
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            mVehicleRenderer.RenderSimState(mMTSGame.ActiveState);
+            mMTSCRenderer.RenderSimState(mMTSGame.ActiveState);
 
             base.Draw(gameTime);
         }

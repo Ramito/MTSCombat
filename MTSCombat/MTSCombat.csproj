@@ -48,7 +48,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Render\PrimitiveRenderer.cs" />
-    <Compile Include="Render\VehicleRenderer.cs" />
+    <Compile Include="Render\MTSCombatRenderer.cs" />
     <Compile Include="Simulation\Core\DynamicOrientation2.cs" />
     <Compile Include="Simulation\Core\DynamicPosition2.cs" />
     <Compile Include="Simulation\Core\Orientation2.cs" />
