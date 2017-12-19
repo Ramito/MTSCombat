@@ -34,17 +34,15 @@ namespace MTSCombat.Simulation
                 controllerInputs[spawningVehicle.ControllerID] = spawningVehicle.ControlState;  //Default control state on first frame
             }
             mPendingVehicleSpawns.Clear();
-            foreach (var vehicle in state.Vehicles)
+            foreach (var currentVehicleState in state.Vehicles)
             {
-                uint controllerID = vehicle.ControllerID;
+                uint controllerID = currentVehicleState.ControllerID;
                 System.Diagnostics.Debug.Assert(controllerInputs.ContainsKey(controllerID));
                 ControlState inputControlState = controllerInputs[controllerID];
-                var newDynamicTransform = inputControlState.ProcessState(vehicle.DynamicTransform, deltaTime);
-                VehicleState newVehicleState = new VehicleState();
-                newVehicleState.SetControllerID(controllerID);
-                newVehicleState.SetState(vehicle.Size, newDynamicTransform, inputControlState);
 
-                GunState currentGunState = vehicle.GunState;
+                VehicleState newVehicleState = ProcessVehicle(currentVehicleState, inputControlState, deltaTime);
+
+                GunState currentGunState = currentVehicleState.GunState;
                 PlayerData playerData = mSimulationData.GetData(controllerID);
                 GunMount gunMount = playerData.GunMount;
                 bool projectileFired;
@@ -52,8 +50,8 @@ namespace MTSCombat.Simulation
                 if (projectileFired)
                 {
                     Vector2 gunLocalOffset = gunMount.LocalMountOffsets[currentGunState.NextGunToFire];
-                    Vector2 shotPosition = newDynamicTransform.Position + newDynamicTransform.Orientation.LocalToGlobal(gunLocalOffset);
-                    Vector2 shotVelocity = gunMount.MountedGun.ShotSpeed * newDynamicTransform.Orientation.Facing + newDynamicTransform.Velocity;
+                    Vector2 shotPosition = newVehicleState.DynamicTransform.Position + newVehicleState.DynamicTransform.Orientation.LocalToGlobal(gunLocalOffset);
+                    Vector2 shotVelocity = gunMount.MountedGun.ShotSpeed * newVehicleState.DynamicTransform.Orientation.Facing + newVehicleState.DynamicTransform.Velocity;
                     DynamicPosition2 projectileState = new DynamicPosition2(shotPosition, shotVelocity);
                     state.Projectiles.Add(projectileState);
                 }
@@ -83,6 +81,57 @@ namespace MTSCombat.Simulation
                 }
             }
             return nextSimState;
+        }
+
+        private VehicleState ProcessVehicle(VehicleState currentVehicleState, ControlState inputControlState, float deltaTime)
+        {
+            var newDynamicTransform = inputControlState.ProcessState(currentVehicleState.DynamicTransform, deltaTime);
+
+            //Check collisions!
+            float penetration;
+            Vector2 collisionAxis;
+            if (CollisionWithArena(currentVehicleState.Size, newDynamicTransform.Position, out penetration, out collisionAxis))
+            {
+                Vector2 newPosition = newDynamicTransform.Position + 2f * penetration * collisionAxis;
+                Vector2 newVelocity = newDynamicTransform.Velocity - 2f * Vector2.Dot(newDynamicTransform.Velocity, collisionAxis) * collisionAxis;
+                DynamicPosition2 newDynamicPosition = new DynamicPosition2(newPosition, newVelocity);
+                newDynamicTransform = new DynamicTransform2(newDynamicPosition, newDynamicTransform.DynamicOrientation);
+            }
+            VehicleState newVehicleState = new VehicleState();
+            newVehicleState.SetControllerID(currentVehicleState.ControllerID);
+            newVehicleState.SetState(currentVehicleState.Size, newDynamicTransform, inputControlState);
+            return newVehicleState;
+        }
+
+        private bool CollisionWithArena(float size, Vector2 position, out float penetration, out Vector2 collisionNormal)
+        {
+            if (position.X <= size)
+            {
+                penetration = size - position.X;
+                collisionNormal = Vector2.UnitX;
+                return true;
+            }
+            if (position.X > (mSimulationData.ArenaWidth - size))
+            {
+                penetration = position.X - (mSimulationData.ArenaWidth - size);
+                collisionNormal = -Vector2.UnitX;
+                return true;
+            }
+            if (position.Y <= size)
+            {
+                penetration = size - position.Y;
+                collisionNormal = Vector2.UnitY;
+                return true;
+            }
+            if (position.Y > (mSimulationData.ArenaHeight - size))
+            {
+                penetration = position.Y - (mSimulationData.ArenaHeight - size);
+                collisionNormal = -Vector2.UnitY;
+                return true;
+            }
+            penetration = 0f;
+            collisionNormal = Vector2.Zero;
+            return false;
         }
 
         private bool ProjectileHitsVehicle(VehicleState vehicleState, DynamicPosition2 projectileState)
