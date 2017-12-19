@@ -74,7 +74,7 @@ namespace MTSCombat
             const float vehicleSize = 5f;
             GunMount gunMount = MakeGunMount(vehicleSize);
 
-            AsteroidsControlData data = new AsteroidsControlData(60f, 90f, 3f);
+            AsteroidsControlData data = new AsteroidsControlData(60f, 90f, 10f, 4f);
 
             AsteroidsControls asteroidsControls = new AsteroidsControls(data);
             Vector2 position = new Vector2(kArenaWidth / 4, kArenaHeight / 4);

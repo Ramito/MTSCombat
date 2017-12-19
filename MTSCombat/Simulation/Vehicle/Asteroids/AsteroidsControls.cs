@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -91,11 +92,27 @@ namespace MTSCombat.Simulation
             Vector2 newPosition = state.Position + positionDelta;
             DynamicPosition2 resultingDynamicPosition = new DynamicPosition2(newPosition, newVelocity);
 
-            float angularVelocity = Data.RotationSpeed * RelativeRotation;
-            float rotatedAmount = Data.RotationSpeed * RelativeRotation * deltaTime;
+            float appliedRotationalThrust;
+            if (RelativeRotation != 0f)
+            {
+                appliedRotationalThrust = Data.RotationAcceleration* RelativeRotation;
+            }
+            else
+            {
+                appliedRotationalThrust = -state.AngularVelocity / deltaTime;
+            }
+            float originalRotationalVelocity = state.AngularVelocity;
+            float newRotationalVelocity = originalRotationalVelocity + appliedRotationalThrust * deltaTime;
+            if (Math.Abs(newRotationalVelocity) > Data.MaxRotationSpeed)
+            {
+                newRotationalVelocity = Math.Sign(newRotationalVelocity) * Data.MaxRotationSpeed;
+                appliedRotationalThrust = (newRotationalVelocity - originalRotationalVelocity) / deltaTime;
+            }
+
+            float rotatedAmount = deltaTime * originalRotationalVelocity + 0.5f * (deltaTime * deltaTime) * appliedRotationalThrust;
             Orientation2 currentOrientation = state.Orientation;
             Orientation2 resultingOrientation = currentOrientation.RotatedBy(rotatedAmount);
-            DynamicOrientation2 resultingDynamicOrientation = new DynamicOrientation2(resultingOrientation, angularVelocity);
+            DynamicOrientation2 resultingDynamicOrientation = new DynamicOrientation2(resultingOrientation, newRotationalVelocity);
 
             return new DynamicTransform2(resultingDynamicPosition, resultingDynamicOrientation);
         }
@@ -105,13 +122,15 @@ namespace MTSCombat.Simulation
     {
         public readonly float Acceleration;
         public readonly float MaxSpeed;
-        public readonly float RotationSpeed;
+        public readonly float RotationAcceleration;
+        public readonly float MaxRotationSpeed;
 
-        public AsteroidsControlData(float acceleration, float speed, float rotationSpeed)
+        public AsteroidsControlData(float acceleration, float speed, float rotationAcceleration, float rotationSpeed)
         {
             Acceleration = acceleration;
             MaxSpeed = speed;
-            RotationSpeed = rotationSpeed;
+            RotationAcceleration = rotationAcceleration;
+            MaxRotationSpeed = rotationSpeed;
         }
     }
 }
