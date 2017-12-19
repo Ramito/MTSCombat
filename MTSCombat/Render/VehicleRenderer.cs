@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace MTSCombat
 {
-    public class VehicleRenderer
+    public class MTSCombatRenderer
     {
         private static readonly Color[] sColors =
             new Color[]
@@ -15,29 +15,41 @@ namespace MTSCombat
                 Color.Black,
                 Color.White,
             };
-        private List<Vector2> mVertexHash = new List<Vector2>();
 
-        public void RenderVehicles(List<VehicleState> vehicles, PrimitiveRenderer renderer)
+        private PrimitiveRenderer mPrimitiveRenderer;
+        private List<Vector2> mVertexHash;
+
+        public MTSCombatRenderer(PrimitiveRenderer primitiveRenderer)
+        {
+            mPrimitiveRenderer = primitiveRenderer;
+            mVertexHash = new List<Vector2>(12);
+        }
+
+        public void RenderSimState(SimulationState stateToRender)
+        {
+            RenderVehicles(stateToRender.Vehicles);
+            RenderProjectiles(stateToRender.Projectiles);
+            mPrimitiveRenderer.Render();
+        }
+
+        private void RenderVehicles(List<VehicleState> vehicles)
         {
             int colorIndex = 1;
             foreach (var vehicle in vehicles)
             {
-                WriteVerticesOnHash(vehicle);
-                renderer.PushPolygon(mVertexHash, sColors[colorIndex]);
+                SetVehicleVerticesOnHash(vehicle);
+                mPrimitiveRenderer.PushPolygon(mVertexHash, sColors[colorIndex]);
                 colorIndex = (colorIndex + 1) % sColors.Length;
                 mVertexHash.Clear();
             }
         }
 
-        public void RenderProjectiles(List<DynamicPosition2> projectiles, PrimitiveRenderer renderer)
+        private void RenderProjectiles(List<DynamicPosition2> projectiles)
         {
             foreach (var projectile in projectiles)
             {
-                mVertexHash.Add(projectile.Position + Vector2.UnitX);
-                mVertexHash.Add(projectile.Position + Vector2.UnitY);
-                mVertexHash.Add(projectile.Position - Vector2.UnitX);
-                mVertexHash.Add(projectile.Position - Vector2.UnitY);
-                renderer.PushPolygon(mVertexHash, Color.Yellow);
+                SetProjectileVerticesOnHash(projectile);
+                mPrimitiveRenderer.PushPolygon(mVertexHash, Color.Orange);
                 mVertexHash.Clear();
             }
         }
@@ -45,7 +57,7 @@ namespace MTSCombat
         const double kDrawAngle = 2.25f;
         private readonly static double kCosDrawAngle = Math.Cos(kDrawAngle);
         private readonly static double kSinDrawAngle = Math.Sin(kDrawAngle);
-        private void WriteVerticesOnHash(VehicleState vehicle)
+        private void SetVehicleVerticesOnHash(VehicleState vehicle)
         {
             Debug.Assert(mVertexHash.Count == 0);
             Vector2 position = vehicle.DynamicTransform.Position;
@@ -53,6 +65,21 @@ namespace MTSCombat
             mVertexHash.Add(position + sizedFacing);
             mVertexHash.Add(position + PositiveRotateHelper(sizedFacing));
             mVertexHash.Add(position + NegativeRotateHelper(sizedFacing));
+        }
+
+        private void SetProjectileVerticesOnHash(DynamicPosition2 projectileState)
+        {
+            Debug.Assert(mVertexHash.Count == 0);
+            const float projectileScale = 1f / 45f;
+            const float forwardProportion = 0.1f;
+            const float lateralScale = 0.1f;
+            Vector2 position = projectileState.Position;
+            Vector2 direction = projectileScale * projectileState.Velocity;
+            Vector2 lateral = lateralScale * (new Vector2(-direction.Y, direction.X));
+            mVertexHash.Add(position + forwardProportion * direction);
+            mVertexHash.Add(position + lateral);
+            mVertexHash.Add(position + (forwardProportion - 1f) * direction);
+            mVertexHash.Add(position - lateral);
         }
 
         private static Vector2 PositiveRotateHelper(Vector2 facing)

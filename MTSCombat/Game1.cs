@@ -12,11 +12,10 @@ namespace MTSCombat
     public class Game1 : Game
     {
 
-        private const int kArenaWidth = 800;
-        private const int kArenaHeight = 600;
+        private const int kArenaWidth = 1280;
+        private const int kArenaHeight = 720;
         private GraphicsDeviceManager mGraphics;
-        private PrimitiveRenderer mPrimitiveRenderer;
-        private VehicleRenderer mVehicleRenderer;
+        private MTSCombatRenderer mVehicleRenderer;
         private MTSCombatGame mMTSGame;
         
         public Game1()
@@ -24,8 +23,6 @@ namespace MTSCombat
             mGraphics = new GraphicsDeviceManager(this);
             MatchCurrentResolution(mGraphics);
             Content.RootDirectory = "Content";
-            mPrimitiveRenderer = new PrimitiveRenderer();
-            mVehicleRenderer = new VehicleRenderer();
         }
 
         private static void MatchCurrentResolution(GraphicsDeviceManager graphics)
@@ -47,7 +44,9 @@ namespace MTSCombat
             rs.CullMode = CullMode.None;
             mGraphics.GraphicsDevice.RasterizerState = rs;
 
-            mPrimitiveRenderer.Setup(mGraphics.GraphicsDevice, kArenaWidth, kArenaHeight);
+            PrimitiveRenderer primitiveRenderer = new PrimitiveRenderer();
+            primitiveRenderer.Setup(mGraphics.GraphicsDevice, kArenaWidth, kArenaHeight);
+            mVehicleRenderer = new MTSCombatRenderer(primitiveRenderer);
 
             mMTSGame = new MTSCombatGame(2, kArenaWidth, kArenaHeight);
             AsteroidsControlData data = new AsteroidsControlData(60f, 90f, 3f);
@@ -55,7 +54,7 @@ namespace MTSCombat
             VehicleState state = new VehicleState();
             state.SetControllerID(0);
             state.SetState(5f, new DynamicTransform2(new Vector2(kArenaWidth / 2, kArenaHeight / 2), new Orientation2(0f)), asteroidsControls);
-            GunMount gunMount = new GunMount(new GunData(0.75f, 280f), new Vector2[] { 2f * Vector2.UnitX, 3f * Vector2.UnitY, -3f * Vector2.UnitY });
+            GunMount gunMount = new GunMount(new GunData(0.3f, 720f), new Vector2[] { 2f * Vector2.UnitX, 3f * Vector2.UnitY, -3f * Vector2.UnitY });
             mMTSGame.AddVehicle(state, gunMount);
 
             base.Initialize();
@@ -104,9 +103,7 @@ namespace MTSCombat
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            mVehicleRenderer.RenderVehicles(mMTSGame.ActiveState.Vehicles, mPrimitiveRenderer);
-            mVehicleRenderer.RenderProjectiles(mMTSGame.ActiveState.Projectiles, mPrimitiveRenderer);
-            mPrimitiveRenderer.Render();
+            mVehicleRenderer.RenderSimState(mMTSGame.ActiveState);
 
             base.Draw(gameTime);
         }

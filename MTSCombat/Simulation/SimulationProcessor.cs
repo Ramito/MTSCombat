@@ -75,8 +75,8 @@ namespace MTSCombat.Simulation
 
         private bool InsideArena(Vector2 position)
         {
-            return ((position.X >= 0f) || (position.X <= mSimulationData.ArenaWidth))
-            || ((position.Y >= 0f) || (position.Y <= mSimulationData.ArenaHeight));
+            return ((position.X >= 0f) && (position.X <= mSimulationData.ArenaWidth))
+            && ((position.Y >= 0f) && (position.Y <= mSimulationData.ArenaHeight));
         }
 
         private GunState ProcessGunstate(GunMount mount, GunState gunState, bool triggerDown, float deltaTime, out bool projectileFired)
