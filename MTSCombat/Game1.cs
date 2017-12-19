@@ -49,15 +49,53 @@ namespace MTSCombat
             mVehicleRenderer = new MTSCombatRenderer(primitiveRenderer);
 
             mMTSGame = new MTSCombatGame(2, kArenaWidth, kArenaHeight);
-            AsteroidsControlData data = new AsteroidsControlData(60f, 90f, 3f);
-            AsteroidsControls asteroidsControls = new AsteroidsControls(data);
-            VehicleState state = new VehicleState();
-            state.SetControllerID(0);
-            state.SetState(5f, new DynamicTransform2(new Vector2(kArenaWidth / 2, kArenaHeight / 2), new Orientation2(0f)), asteroidsControls);
-            GunMount gunMount = new GunMount(new GunData(0.3f, 720f), new Vector2[] { 2f * Vector2.UnitX, 3f * Vector2.UnitY, -3f * Vector2.UnitY });
-            mMTSGame.AddVehicle(state, gunMount);
+
+            SpawnVehicles();
 
             base.Initialize();
+        }
+
+        private GunMount MakeGunMount(float size)
+        {
+            Vector2[] gunArray = new Vector2[]
+            {
+                size * MTSCombatRenderer.GetRelativeGunMountLocation(0),
+                size * MTSCombatRenderer.GetRelativeGunMountLocation(1),
+                size * MTSCombatRenderer.GetRelativeGunMountLocation(2)
+            };
+            const float barrelReloadTime = 0.3f; 
+            const float gunSpeed = 720f;
+            GunMount gunMount = new GunMount(new GunData(barrelReloadTime, gunSpeed), gunArray);
+            return gunMount;
+        }
+
+        private void SpawnVehicles()
+        {
+            const float vehicleSize = 5f;
+            GunMount gunMount = MakeGunMount(vehicleSize);
+
+            AsteroidsControlData data = new AsteroidsControlData(60f, 90f, 3f);
+
+            AsteroidsControls asteroidsControls = new AsteroidsControls(data);
+            Vector2 position = new Vector2(kArenaWidth / 4, kArenaHeight / 4);
+            Orientation2 orientation = new Orientation2(MathHelper.PiOver2);
+            DynamicTransform2 initialState = new DynamicTransform2(position, orientation);
+            SpawnVehicle(0, asteroidsControls, gunMount, vehicleSize, initialState);
+
+            asteroidsControls = new AsteroidsControls(data);
+            position = new Vector2(3 * kArenaWidth / 4, 3 * kArenaHeight / 4);
+            orientation = new Orientation2(-MathHelper.PiOver2);
+            initialState = new DynamicTransform2(position, orientation);
+            SpawnVehicle(1, asteroidsControls, gunMount, vehicleSize, initialState);
+
+        }
+
+        private void SpawnVehicle(uint controllerID, ControlState controls, GunMount guns, float vehicleSize, DynamicTransform2 initialState)
+        {
+            VehicleState state = new VehicleState();
+            state.SetControllerID(controllerID);
+            state.SetState(vehicleSize, initialState, controls);
+            mMTSGame.AddVehicle(state, guns);
         }
 
         /// <summary>

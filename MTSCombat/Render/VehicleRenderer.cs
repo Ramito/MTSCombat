@@ -67,6 +67,22 @@ namespace MTSCombat
             mVertexHash.Add(position + NegativeRotateHelper(sizedFacing));
         }
 
+        public static Vector2 GetRelativeGunMountLocation(int index)
+        {
+            index = index % 3;
+            Vector2 reference = (new Orientation2()).Facing;
+            switch (index)
+            {
+                case 0:
+                    return reference;
+                case 1:
+                    return PositiveRotateHelper(reference);
+                case 2:
+                default:
+                    return NegativeRotateHelper(reference);
+            }
+        }
+
         private void SetProjectileVerticesOnHash(DynamicPosition2 projectileState)
         {
             Debug.Assert(mVertexHash.Count == 0);
