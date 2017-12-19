@@ -50,12 +50,12 @@ namespace MTSCombat
             mPrimitiveRenderer.Setup(mGraphics.GraphicsDevice, kArenaWidth, kArenaHeight);
 
             mMTSGame = new MTSCombatGame(2, kArenaWidth, kArenaHeight);
-            AsteroidsControlData data = new AsteroidsControlData(20f, 30f, 2f);
+            AsteroidsControlData data = new AsteroidsControlData(60f, 90f, 3f);
             AsteroidsControls asteroidsControls = new AsteroidsControls(data);
             VehicleState state = new VehicleState();
             state.SetControllerID(0);
             state.SetState(5f, new DynamicTransform2(new Vector2(kArenaWidth / 2, kArenaHeight / 2), new Orientation2(0f)), asteroidsControls);
-            GunMount gunMount = new GunMount(new GunData(0.75f, 280f), new Vector2[] { Vector2.UnitY, -Vector2.UnitY });
+            GunMount gunMount = new GunMount(new GunData(0.75f, 280f), new Vector2[] { 2f * Vector2.UnitX, 3f * Vector2.UnitY, -3f * Vector2.UnitY });
             mMTSGame.AddVehicle(state, gunMount);
 
             base.Initialize();
