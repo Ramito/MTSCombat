@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using MTSCombat.Simulation;
+using System;
 using System.Collections.Generic;
 
 namespace MTSCombat
@@ -13,6 +14,9 @@ namespace MTSCombat
         private SimulationProcessor mSimProcessor;
 
         public const uint kDefaultPlayerID = 0;
+        public const uint kDefaultAIID = 1;
+
+        public readonly Random mRandom = new Random();
 
         public MTSCombatGame(int expectedVehicles, int arenaWidth, int arenaHeight)
         {
@@ -30,13 +34,27 @@ namespace MTSCombat
 
         public void Tick(float deltaTime)
         {
-            StandardPlayerInput playerInput = StandardPlayerInput.ProcessKeyboard(Keyboard.GetState());
             var playerControl = ActiveState.GetCurrentControlStateForController(kDefaultPlayerID);
             if (playerControl != null)
             {
+                StandardPlayerInput playerInput = StandardPlayerInput.ProcessKeyboard(Keyboard.GetState());
                 mActiveInput[kDefaultPlayerID] = playerControl.GetNextStateFromInput(playerInput);
             }
+            ControlState currentAIControl = ActiveState.GetCurrentControlStateForController(kDefaultAIID);
+            if (currentAIControl != null)
+            {
+                ControlState aiControlInput = GetAIInput(currentAIControl);
+                mActiveInput[kDefaultAIID] = aiControlInput;
+            }
             ActiveState = mSimProcessor.ProcessState(ActiveState, mActiveInput, deltaTime);
+        }
+
+        private ControlState GetAIInput(ControlState currentControl)
+        {
+            //TODO: Shooting controls need to be separated!
+            List<ControlState> allControls = currentControl.GetPossibleActions();
+            int choice = mRandom.Next(0, allControls.Count);
+            return allControls[choice];
         }
     }
 }
