@@ -66,11 +66,29 @@ namespace MTSCombat.Simulation
                 Vector2 nextPosition = projectile.Position + deltaTime * projectile.Velocity;
                 if (InsideArena(nextPosition))
                 {
+                    bool hit = false;
                     DynamicPosition2 nextProjectileState = new DynamicPosition2(nextPosition, projectile.Velocity);
-                    nextSimState.Projectiles.Add(nextProjectileState);
+                    foreach (var vehicleToHit in nextSimState.Vehicles)
+                    {
+                        if (ProjectileHitsVehicle(vehicleToHit, nextProjectileState))
+                        {
+                            hit = true;
+                            break;
+                        }
+                    }
+                    if (!hit)
+                    {
+                        nextSimState.Projectiles.Add(nextProjectileState);
+                    }
                 }
             }
             return nextSimState;
+        }
+
+        private bool ProjectileHitsVehicle(VehicleState vehicleState, DynamicPosition2 projectileState)
+        {
+            float distanceSq = (projectileState.Position - vehicleState.DynamicTransform.Position).LengthSquared();
+            return distanceSq <= (vehicleState.Size * vehicleState.Size);
         }
 
         private bool InsideArena(Vector2 position)

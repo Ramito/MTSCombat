@@ -87,7 +87,6 @@ namespace MTSCombat
             orientation = new Orientation2(-MathHelper.PiOver2);
             initialState = new DynamicTransform2(position, orientation);
             SpawnVehicle(1, asteroidsControls, gunMount, vehicleSize, initialState);
-
         }
 
         private void SpawnVehicle(uint controllerID, ControlState controls, GunMount guns, float vehicleSize, DynamicTransform2 initialState)
