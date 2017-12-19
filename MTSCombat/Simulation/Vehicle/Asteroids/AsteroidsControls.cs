@@ -26,7 +26,7 @@ namespace MTSCombat.Simulation
 
         public override ControlState GetNextStateFromInput(StandardPlayerInput playerInput)
         {
-            return new AsteroidsControls(playerInput.VerticalInput, playerInput.RotationInput, playerInput.TriggerInput, Data);
+            return new AsteroidsControls(playerInput.VerticalInput, -playerInput.HorizontalInput, playerInput.TriggerInput, Data);
         }
 
         public override bool GunTriggerDown()
@@ -36,7 +36,7 @@ namespace MTSCombat.Simulation
 
         public override List<ControlState> GetPossibleActions()
         {
-            const int kCombinations = 9;
+            const int kCombinations = 18;
             List<ControlState> resultingControls = new List<ControlState>(kCombinations);
             for (int i = 0; i < 2; ++i)
             {
