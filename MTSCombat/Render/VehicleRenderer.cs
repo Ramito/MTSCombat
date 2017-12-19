@@ -29,6 +29,19 @@ namespace MTSCombat
             }
         }
 
+        public void RenderProjectiles(List<DynamicPosition2> projectiles, PrimitiveRenderer renderer)
+        {
+            foreach (var projectile in projectiles)
+            {
+                mVertexHash.Add(projectile.Position + Vector2.UnitX);
+                mVertexHash.Add(projectile.Position + Vector2.UnitY);
+                mVertexHash.Add(projectile.Position - Vector2.UnitX);
+                mVertexHash.Add(projectile.Position - Vector2.UnitY);
+                renderer.PushPolygon(mVertexHash, Color.Yellow);
+                mVertexHash.Clear();
+            }
+        }
+
         const double kDrawAngle = 2.25f;
         private readonly static double kCosDrawAngle = Math.Cos(kDrawAngle);
         private readonly static double kSinDrawAngle = Math.Sin(kDrawAngle);

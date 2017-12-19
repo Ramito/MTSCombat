@@ -52,6 +52,9 @@
     <Compile Include="Simulation\Core\DynamicOrientation2.cs" />
     <Compile Include="Simulation\Core\DynamicPosition2.cs" />
     <Compile Include="Simulation\Core\Orientation2.cs" />
+    <Compile Include="Simulation\Gun\GunData.cs" />
+    <Compile Include="Simulation\Gun\GunMount.cs" />
+    <Compile Include="Simulation\Gun\GunState.cs" />
     <Compile Include="Simulation\Vehicle\Asteroids\AsteroidsControls.cs" />
     <Compile Include="Simulation\Vehicle\ControlState.cs" />
     <Compile Include="Simulation\SimulationProcessor.cs" />

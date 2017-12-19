@@ -19,5 +19,13 @@ namespace MTSCombat.Simulation
         {
             return new Orientation2(mFacingAngle + angle);
         }
+
+        public Vector2 LocalToGlobal(Vector2 local)
+        {
+            Vector2 facing = Facing;
+            float x = facing.X * local.X - facing.Y * local.Y;
+            float y = facing.Y * local.X + facing.X * local.Y;
+            return new Vector2(x, y);
+        }
     }
 }

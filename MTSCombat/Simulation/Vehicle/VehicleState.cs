@@ -11,6 +11,7 @@ namespace MTSCombat.Simulation
         public float Size { get; private set; } //Represents a radius
         public DynamicTransform2 DynamicTransform { get; private set; }
         public ControlState ControlState { get; private set; }
+        public GunState GunState { get; private set; }
 
         public void SetControllerID(uint controllerID)
         {
@@ -22,6 +23,11 @@ namespace MTSCombat.Simulation
             Size = size;
             DynamicTransform = transform;
             ControlState = controlState;
+        }
+
+        public void SetGunState(GunState gunState)
+        {
+            GunState = gunState;
         }
     }
 }

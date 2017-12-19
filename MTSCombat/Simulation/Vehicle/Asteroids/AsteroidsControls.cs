@@ -12,32 +12,43 @@ namespace MTSCombat.Simulation
 
         public readonly float RelativeThrust;
         public readonly float RelativeRotation;
+        private readonly bool mTrigger;
 
-        public AsteroidsControls(AsteroidsControlData data) : this(0f, 0f, data) { }
+        public AsteroidsControls(AsteroidsControlData data) : this(0f, 0f, false, data) { }
 
-        public AsteroidsControls(float thrust, float rotation, AsteroidsControlData data)
+        public AsteroidsControls(float thrust, float rotation, bool trigger, AsteroidsControlData data)
         {
             Data = data;
             RelativeThrust = thrust;
             RelativeRotation = rotation;
+            mTrigger = trigger;
         }
 
         public override ControlState GetNextStateFromInput(StandardPlayerInput playerInput)
         {
-            return new AsteroidsControls(playerInput.VerticalInput, playerInput.RotationInput, Data);
+            return new AsteroidsControls(playerInput.VerticalInput, playerInput.RotationInput, playerInput.TriggerInput, Data);
+        }
+
+        public override bool GunTriggerDown()
+        {
+            return mTrigger;
         }
 
         public override List<ControlState> GetPossibleActions()
         {
             const int kCombinations = 9;
             List<ControlState> resultingControls = new List<ControlState>(kCombinations);
-            for (int thrust = -1; thrust <= 1; ++thrust)
+            for (int i = 0; i < 2; ++i)
             {
-                float possibleThrust = (float)thrust;
-                for (int rotation = -1; rotation <= 1; ++rotation)
+                bool trigger = i == 0;
+                for (int thrust = -1; thrust <= 1; ++thrust)
                 {
-                    float possibleRotation = (float)rotation;
-                    resultingControls.Add(new AsteroidsControls(possibleThrust, possibleRotation, Data));
+                    float possibleThrust = (float)thrust;
+                    for (int rotation = -1; rotation <= 1; ++rotation)
+                    {
+                        float possibleRotation = (float)rotation;
+                        resultingControls.Add(new AsteroidsControls(possibleThrust, possibleRotation, trigger, Data));
+                    }
                 }
             }
             Debug.Assert(kCombinations == resultingControls.Count);

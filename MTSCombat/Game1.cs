@@ -49,13 +49,14 @@ namespace MTSCombat
 
             mPrimitiveRenderer.Setup(mGraphics.GraphicsDevice, kArenaWidth, kArenaHeight);
 
-            mMTSGame = new MTSCombatGame(2);
+            mMTSGame = new MTSCombatGame(2, kArenaWidth, kArenaHeight);
             AsteroidsControlData data = new AsteroidsControlData(20f, 30f, 2f);
             AsteroidsControls asteroidsControls = new AsteroidsControls(data);
             VehicleState state = new VehicleState();
             state.SetControllerID(0);
             state.SetState(5f, new DynamicTransform2(new Vector2(kArenaWidth / 2, kArenaHeight / 2), new Orientation2(0f)), asteroidsControls);
-            mMTSGame.AddVehicle(state);
+            GunMount gunMount = new GunMount(new GunData(0.75f, 280f), new Vector2[] { Vector2.UnitY, -Vector2.UnitY });
+            mMTSGame.AddVehicle(state, gunMount);
 
             base.Initialize();
         }
@@ -104,6 +105,7 @@ namespace MTSCombat
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             mVehicleRenderer.RenderVehicles(mMTSGame.ActiveState.Vehicles, mPrimitiveRenderer);
+            mVehicleRenderer.RenderProjectiles(mMTSGame.ActiveState.Projectiles, mPrimitiveRenderer);
             mPrimitiveRenderer.Render();
 
             base.Draw(gameTime);
