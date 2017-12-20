@@ -64,7 +64,7 @@ namespace MTSCombat
                 size * MTSCombatRenderer.GetRelativeGunMountLocation(2)
             };
             const float barrelReloadTime = 0.3f; 
-            const float gunSpeed = 720f;
+            const float gunSpeed = 360f;
             GunMount gunMount = new GunMount(new GunData(barrelReloadTime, gunSpeed), gunArray);
             return gunMount;
         }

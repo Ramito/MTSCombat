@@ -60,15 +60,18 @@ namespace MTSCombat
             GunData gunData = mSimProcessor.GetGunDataFor(playerID);
             List<ControlState> allControls = currentVehicleState.ControlState.GetPossibleActions();
             VehicleState target = simulationState.GetTargetVehicleFor(playerID);
-            float bestShotDistance = float.MaxValue;
+            GunData targetGunData = mSimProcessor.GetGunDataFor(target.ControllerID);
+            float bestHeuristic = float.MaxValue;
             ControlState chosenControl = null;
             foreach (ControlState control in allControls)
             {
                 DynamicTransform2 possibleState = control.ProcessState(currentVehicleState.DynamicTransform, deltaTime);
                 float possibleShotDistance = ShotDistance(possibleState, gunData, target.DynamicTransform.DynamicPosition);
-                if (possibleShotDistance < bestShotDistance)
+                float conversePossibleShotDistance = ShotDistance(target.DynamicTransform, targetGunData, possibleState.DynamicPosition);
+                float heuristic = possibleShotDistance - conversePossibleShotDistance;
+                if (heuristic < bestHeuristic)
                 {
-                    bestShotDistance = possibleShotDistance;
+                    bestHeuristic = heuristic;
                     chosenControl = control;
                 }
             }
