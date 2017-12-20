@@ -57,25 +57,26 @@ namespace MTSCombat.Simulation
         {
             for (int axis1Delta = -1; axis1Delta < 2; ++axis1Delta)
             {
-                float resultingAxis1Value;
-                if (!ValidPermute(axis1Delta, currentState.Axis1, Axis1RateOfChange, deltaTime, out resultingAxis1Value))
+                if ((axis1Delta != 0) && (Axis1RateOfChange == 0f))
                 {
                     continue;
                 }
+                float resultingAxis1Value = AxisValue(currentState.Axis1, axis1Delta, Axis1RateOfChange, deltaTime);
                 for (int axis2Delta = -1; axis2Delta < 2; ++axis2Delta)
                 {
-                    float resultingAxis2Value;
-                    if (!ValidPermute(axis2Delta, currentState.Axis2, Axis2RateOfChange, deltaTime, out resultingAxis2Value))
+
+                    if ((axis2Delta != 0) && (Axis2RateOfChange == 0f))
                     {
                         continue;
                     }
+                    float resultingAxis2Value = AxisValue(currentState.Axis2, axis2Delta, Axis2RateOfChange, deltaTime);
                     for (int axis3Delta = -1; axis3Delta < 2; ++axis3Delta)
                     {
-                        float resultingAxis3Value;
-                        if (!ValidPermute(axis3Delta, currentState.Axis3, Axis3RateOfChange, deltaTime, out resultingAxis3Value))
+                        if ((axis3Delta != 0) && (Axis3RateOfChange == 0f))
                         {
                             continue;
                         }
+                        float resultingAxis3Value = AxisValue(currentState.Axis3, axis3Delta, Axis3RateOfChange, deltaTime);
                         VehicleDriveControls resulting = new VehicleDriveControls(resultingAxis1Value, resultingAxis2Value, resultingAxis3Value);
                         possibleControls.Add(resulting);
                     }
@@ -83,30 +84,27 @@ namespace MTSCombat.Simulation
             }
         }
 
+        private float AxisValue(float currentValue, float targetValue, float rateOfChange, float deltaTime)
+        {
+            float targetChange = targetValue - currentValue;
+            float maxChange = rateOfChange * deltaTime;
+            Debug.Assert(maxChange >= 0f);
+            if (Math.Abs(targetChange) <= maxChange)
+            {
+                return targetValue;
+            }
+            else
+            {
+                return currentValue + Math.Sign(targetChange) * maxChange;
+            }
+        }
+
         public VehicleDriveControls GetNextFromPlayerInput(VehicleDriveControls current, StandardPlayerInput playerInput, float deltaTime)
         {
-            float axis1 = ClampAxis(current.Axis1 + deltaTime * Axis1RateOfChange * playerInput.HorizontalInput);
-            float axis2 = ClampAxis(current.Axis2 + deltaTime * Axis2RateOfChange * playerInput.VerticalInput);
-            float axis3 = ClampAxis(current.Axis3 + deltaTime * Axis3RateOfChange * playerInput.RotationInput);
+            float axis1 = AxisValue(current.Axis1, playerInput.HorizontalInput, Axis1RateOfChange, deltaTime);
+            float axis2 = AxisValue(current.Axis2, playerInput.VerticalInput, Axis2RateOfChange, deltaTime);
+            float axis3 = AxisValue(current.Axis3, playerInput.RotationInput, Axis3RateOfChange, deltaTime);
             return new VehicleDriveControls(axis1, axis2, axis3);
-        }
-
-        private bool ValidPermute(int axisDelta, float currentAxisValue, float axisRoC, float deltaTime, out float resultingValue)
-        {
-            if (axisRoC == 0f)
-            {
-                resultingValue = currentAxisValue;
-                return axisDelta == 0;
-            }
-            Debug.Assert(Math.Abs(axisDelta) <= 1);
-            resultingValue = currentAxisValue + axisDelta * deltaTime * axisRoC;
-            resultingValue = ClampAxis(resultingValue);
-            return resultingValue != currentAxisValue;
-        }
-
-        private float ClampAxis(float axisValue)
-        {
-            return MathHelper.Clamp(axisValue, -1f, 1f);
         }
     }
 }
