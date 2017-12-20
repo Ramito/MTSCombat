@@ -28,7 +28,10 @@ namespace MTSCombat
         public void RenderSimState(SimulationData simulationData, SimulationState stateToRender)
         {
             RenderVehicles(simulationData, stateToRender.Vehicles);
-            RenderProjectiles(stateToRender.Projectiles);
+            foreach (var kvp in stateToRender.Projectiles)
+            {
+                RenderProjectiles(kvp.Value);
+            }
             mPrimitiveRenderer.Render();
         }
 

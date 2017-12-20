@@ -11,12 +11,13 @@ namespace MTSCombat.Simulation
         public static SimulationState ProcessState(SimulationState state, SimulationData simulationData, Dictionary<uint, VehicleControls> controllerInputs, float deltaTime)
         {
             int currentVehicleCount = state.Vehicles.Count;
-            int currentProjectileCount = state.Projectiles.Count;
-            SimulationState nextSimState = new SimulationState(currentVehicleCount, currentProjectileCount + currentProjectileCount);
+            SimulationState nextSimState = new SimulationState(currentVehicleCount);
             foreach (var currentVehicleStateKVP in state.Vehicles)
             {
                 uint controllerID = currentVehicleStateKVP.Key;
                 Debug.Assert(controllerInputs.ContainsKey(controllerID));
+
+                nextSimState.SetProjectileCount(controllerID, state.Projectiles[controllerID].Count + 1);
 
                 VehiclePrototype prototype = simulationData.GetPlayerData(controllerID).Prototype;
                 VehicleControls inputControlState = controllerInputs[controllerID];
@@ -35,7 +36,7 @@ namespace MTSCombat.Simulation
                     Vector2 shotPosition = newDynamicTransform.Position + newDynamicTransform.Orientation.LocalToGlobal(gunLocalOffset);
                     Vector2 shotVelocity = gunMount.MountedGun.ShotSpeed * newDynamicTransform.Orientation.Facing + newDynamicTransform.Velocity;
                     DynamicPosition2 projectileState = new DynamicPosition2(shotPosition, shotVelocity);
-                    state.Projectiles.Add(projectileState);
+                    state.Projectiles[controllerID].Add(projectileState);
                 }
 
                 VehicleState newVehicleState = new VehicleState();
@@ -45,25 +46,30 @@ namespace MTSCombat.Simulation
                 nextSimState.Vehicles.Add(controllerID, newVehicleState);
             }
             //TODO: The above resulting transforms can be put in a collection ready for collision detection below!
-            foreach (var projectile in state.Projectiles)
+            foreach (var projectileKVP in state.Projectiles)
             {
-                Vector2 nextPosition = projectile.Position + deltaTime * projectile.Velocity;
-                if (simulationData.InsideArena(nextPosition))
+                foreach (var projectile in projectileKVP.Value)
                 {
-                    bool hit = false;
-                    DynamicPosition2 nextProjectileState = new DynamicPosition2(nextPosition, projectile.Velocity);
-                    foreach (var vehicleToHit in nextSimState.Vehicles)
+                    Vector2 nextPosition = projectile.Position + deltaTime * projectile.Velocity;
+                    if (simulationData.InsideArena(nextPosition))
                     {
-                        //TODO: I dislike this chunk
-                        if (ProjectileHitsVehicle(vehicleToHit.Value.DynamicTransform, simulationData.GetPlayerData(vehicleToHit.Key).Prototype, nextProjectileState))
+                        bool hit = false;
+                        DynamicPosition2 nextProjectileState = new DynamicPosition2(nextPosition, projectile.Velocity);
+                        foreach (var vehicleToHit in nextSimState.Vehicles)
                         {
-                            hit = true;
-                            break;
+                            if (vehicleToHit.Key != projectileKVP.Key)
+                            {
+                                if (ProjectileHitsVehicle(vehicleToHit.Value.DynamicTransform, simulationData.GetPlayerData(vehicleToHit.Key).Prototype, nextProjectileState))
+                                {
+                                    hit = true;
+                                    break;
+                                }
+                            }
                         }
-                    }
-                    if (!hit)
-                    {
-                        nextSimState.Projectiles.Add(nextProjectileState);
+                        if (!hit)
+                        {
+                            nextSimState.Projectiles[projectileKVP.Key].Add(nextProjectileState);
+                        }
                     }
                 }
             }
