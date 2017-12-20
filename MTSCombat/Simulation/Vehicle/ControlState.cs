@@ -5,8 +5,6 @@ using System.Diagnostics;
 
 namespace MTSCombat.Simulation
 {
-    public delegate DynamicTransform2 VehicleDrive(DynamicTransform2 state, VehicleDriveControls controls, float deltaTime);
-
     public struct VehicleDriveControls
     {
         public readonly float Axis1;
@@ -39,7 +37,7 @@ namespace MTSCombat.Simulation
         }
     }
 
-    public struct SVCConfig
+    public struct VehicleControlsConfig
     {
         public readonly float Axis1RateOfChange;
         public readonly float Axis2RateOfChange;
@@ -47,7 +45,7 @@ namespace MTSCombat.Simulation
 
         public readonly VehicleDriveControls DefaultControl;
 
-        public SVCConfig(float axis1RateOfChange, float axis2RateOfChange, float axis3RateOfChange, VehicleDriveControls defaultControl)
+        public VehicleControlsConfig(float axis1RateOfChange, float axis2RateOfChange, float axis3RateOfChange, VehicleDriveControls defaultControl)
         {
             Axis1RateOfChange = axis1RateOfChange;
             Axis2RateOfChange = axis2RateOfChange;
@@ -100,7 +98,7 @@ namespace MTSCombat.Simulation
                 resultingValue = currentAxisValue;
                 return axisDelta == 0;
             }
-            Debug.Assert(Math.Abs(axisDelta) == 1);
+            Debug.Assert(Math.Abs(axisDelta) <= 1);
             resultingValue = currentAxisValue + axisDelta * deltaTime * axisRoC;
             resultingValue = ClampAxis(resultingValue);
             return resultingValue != currentAxisValue;

@@ -25,19 +25,20 @@ namespace MTSCombat
             mVertexHash = new List<Vector2>(12);
         }
 
-        public void RenderSimState(SimulationState stateToRender)
+        public void RenderSimState(SimulationData simulationData, SimulationState stateToRender)
         {
-            RenderVehicles(stateToRender.Vehicles);
+            RenderVehicles(simulationData, stateToRender.Vehicles);
             RenderProjectiles(stateToRender.Projectiles);
             mPrimitiveRenderer.Render();
         }
 
-        private void RenderVehicles(List<VehicleState> vehicles)
+        private void RenderVehicles(SimulationData simData, Dictionary<uint, VehicleState> vehicles)
         {
             int colorIndex = 1;
-            foreach (var vehicle in vehicles)
+            foreach (var vehicleKVP in vehicles)
             {
-                SetVehicleVerticesOnHash(vehicle);
+                VehiclePrototype prototype = simData.GetPlayerData(vehicleKVP.Key).Prototype;
+                SetVehicleVerticesOnHash(prototype, vehicleKVP.Value);
                 mPrimitiveRenderer.PushPolygon(mVertexHash, sColors[colorIndex]);
                 colorIndex = (colorIndex + 1) % sColors.Length;
                 mVertexHash.Clear();
@@ -57,11 +58,11 @@ namespace MTSCombat
         const double kDrawAngle = 2.25f;
         private readonly static double kCosDrawAngle = Math.Cos(kDrawAngle);
         private readonly static double kSinDrawAngle = Math.Sin(kDrawAngle);
-        private void SetVehicleVerticesOnHash(VehicleState vehicle)
+        private void SetVehicleVerticesOnHash(VehiclePrototype prototype, VehicleState vehicleState)
         {
             Debug.Assert(mVertexHash.Count == 0);
-            Vector2 position = vehicle.DynamicTransform.Position;
-            Vector2 sizedFacing = vehicle.Size * vehicle.DynamicTransform.Orientation.Facing;
+            Vector2 position = vehicleState.DynamicTransform.Position;
+            Vector2 sizedFacing = prototype.VehicleSize * vehicleState.DynamicTransform.Orientation.Facing;
             mVertexHash.Add(position + sizedFacing);
             mVertexHash.Add(position + PositiveRotateHelper(sizedFacing));
             mVertexHash.Add(position + NegativeRotateHelper(sizedFacing));

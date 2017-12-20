@@ -4,10 +4,10 @@
     {
         public readonly float VehicleSize;
         public readonly VehicleDrive VehicleDrive;
-        public readonly SVCConfig ControlConfig;
+        public readonly VehicleControlsConfig ControlConfig;
         public readonly GunMount Guns;
 
-        public VehiclePrototype(float size, VehicleDrive drive, SVCConfig controlConfig, GunMount guns)
+        public VehiclePrototype(float size, VehicleDrive drive, VehicleControlsConfig controlConfig, GunMount guns)
         {
             VehicleSize = size;
             VehicleDrive = drive;
@@ -15,4 +15,6 @@
             Guns = guns;
         }
     }
+
+    public delegate DynamicTransform2 VehicleDrive(DynamicTransform2 state, VehicleDriveControls controls, float deltaTime);
 }
