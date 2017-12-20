@@ -12,12 +12,19 @@ namespace MTSCombat.Simulation
         {
             int currentVehicleCount = state.Vehicles.Count;
             SimulationState nextSimState = new SimulationState(currentVehicleCount);
+            foreach (var kvp in state.Projectiles)
+            {
+                uint id = kvp.Key;
+                List<DynamicPosition2> projectileList;
+                if (state.Projectiles.TryGetValue(id, out projectileList))
+                {
+                    nextSimState.SetProjectileCount(id, projectileList.Count);
+                }
+            }
             foreach (var currentVehicleStateKVP in state.Vehicles)
             {
                 uint controllerID = currentVehicleStateKVP.Key;
                 Debug.Assert(controllerInputs.ContainsKey(controllerID));
-
-                nextSimState.SetProjectileCount(controllerID, state.Projectiles[controllerID].Count + 1);
 
                 VehiclePrototype prototype = simulationData.GetPlayerData(controllerID).Prototype;
                 VehicleControls inputControlState = controllerInputs[controllerID];
@@ -32,11 +39,8 @@ namespace MTSCombat.Simulation
                 GunState nextGunState = ProcessGunstate(gunMount, currentGunState, inputControlState.GunTriggerDown, deltaTime, out projectileFired);
                 if (projectileFired)
                 {
-                    Vector2 gunLocalOffset = gunMount.LocalMountOffsets[currentGunState.NextGunToFire];
-                    Vector2 shotPosition = newDynamicTransform.Position + newDynamicTransform.Orientation.LocalToGlobal(gunLocalOffset);
-                    Vector2 shotVelocity = gunMount.MountedGun.ShotSpeed * newDynamicTransform.Orientation.Facing + newDynamicTransform.Velocity;
-                    DynamicPosition2 projectileState = new DynamicPosition2(shotPosition, shotVelocity);
-                    state.Projectiles[controllerID].Add(projectileState);
+                    DynamicPosition2 projectileState = CreateProjectileState(newDynamicTransform, gunMount, currentGunState.NextGunToFire);
+                    SpawnProjectile(controllerID, state, projectileState);
                 }
 
                 VehicleState newVehicleState = new VehicleState();
@@ -70,10 +74,37 @@ namespace MTSCombat.Simulation
                         {
                             nextSimState.Projectiles[projectileKVP.Key].Add(nextProjectileState);
                         }
+                        else
+                        {
+                            RegisterHit(nextSimState, projectileKVP.Key);
+                        }
                     }
                 }
             }
             return nextSimState;
+        }
+
+        public static DynamicPosition2 CreateProjectileState(DynamicTransform2 shooterDynamicState, GunMount gunMount, int firingBarrel)
+        {
+            Vector2 gunLocalOffset = gunMount.LocalMountOffsets[firingBarrel];
+            Vector2 shotPosition = shooterDynamicState.Position + shooterDynamicState.Orientation.LocalToGlobal(gunLocalOffset);
+            Vector2 shotVelocity = gunMount.MountedGun.ShotSpeed * shooterDynamicState.Orientation.Facing + shooterDynamicState.Velocity;
+            DynamicPosition2 projectileState = new DynamicPosition2(shotPosition, shotVelocity);
+            return projectileState;
+        }
+        public static void SpawnProjectile(uint shooterID, SimulationState state, DynamicPosition2 projectileState)
+        {
+            state.Projectiles[shooterID].Add(projectileState);
+        }
+
+        private static void RegisterHit(SimulationState simState, uint hitVehicleID)
+        {
+            int currentCount;
+            if (!simState.RegisteredHits.TryGetValue(hitVehicleID, out currentCount))
+            {
+                currentCount = 0;
+            }
+            simState.RegisteredHits[hitVehicleID] = currentCount + 1;
         }
 
         private static DynamicTransform2 ProcessVehicleDrive(DynamicTransform2 currentVehicleState, VehiclePrototype prototype, VehicleDriveControls controlState, float deltaTime)

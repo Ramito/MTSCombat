@@ -55,6 +55,7 @@
     <Compile Include="Simulation\Gun\GunData.cs" />
     <Compile Include="Simulation\Gun\GunMount.cs" />
     <Compile Include="Simulation\Gun\GunState.cs" />
+    <Compile Include="AI\MonteCarloVehicleAI.cs" />
     <Compile Include="Simulation\SimulationData.cs" />
     <Compile Include="Simulation\Vehicle\Asteroids\AsteroidsControls.cs" />
     <Compile Include="Simulation\Vehicle\ControlState.cs" />
