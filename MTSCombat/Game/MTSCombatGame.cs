@@ -51,28 +51,29 @@ namespace MTSCombat
                 VehicleDriveControls newDriveControl = prototype.ControlConfig.GetNextFromPlayerInput(playerControl.DriveControls, playerInput, deltaTime);
                 mActiveInput[kDefaultPlayerID] = new VehicleControls(newDriveControl, playerInput.TriggerInput);
             }
-            ControlState currentAIControl = ActiveState.GetCurrentControlStateForController(kDefaultAIID);
-            if (currentAIControl != null)
+            VehicleControls currentAIControl;
+            if (mActiveInput.TryGetValue(kDefaultAIID, out currentAIControl))
             {
-                ControlState aiControlInput = GetAIInput(kDefaultAIID, ActiveState, deltaTime);
+                VehicleControls aiControlInput = GetAIInput(kDefaultAIID, ActiveState, kDefaultPlayerID, deltaTime);
                 mActiveInput[kDefaultAIID] = aiControlInput;
             }
-            ActiveState = mSimProcessor.ProcessState(ActiveState, mActiveInput, deltaTime);
+            ActiveState = mSimProcessor.ProcessState(ActiveState, mSimulationData, mActiveInput, deltaTime);
         }
 
-        private ControlState GetAIInput(uint playerID, SimulationState simulationState, float deltaTime)
+        private VehicleControls GetAIInput(uint playerID, SimulationState simulationState, uint targetID, float deltaTime)
         {
-            //TODO: Shooting controls need to be separated!
-            VehicleState currentVehicleState = simulationState.GetVehicleFor(playerID);
-            GunData gunData = mSimProcessor.GetGunDataFor(playerID);
-            List<ControlState> allControls = currentVehicleState.ControlState.GetPossibleActions();
-            VehicleState target = simulationState.GetTargetVehicleFor(playerID);
-            GunData targetGunData = mSimProcessor.GetGunDataFor(target.ControllerID);
+            VehiclePrototype prototype = mSimulationData.GetPlayerData(playerID).Prototype;
+            VehicleState currentVehicleState = simulationState.Vehicles[playerID];
+            GunData gunData = prototype.Guns.MountedGun;
+            List<VehicleDriveControls> allControls = new List<VehicleDriveControls>(25);    //TODO: CACHE!
+            prototype.ControlConfig.GetPossibleControlChanges(currentVehicleState.ControlState, deltaTime, allControls);
+            VehicleState target = simulationState.Vehicles[targetID];
+            GunData targetGunData = mSimulationData.GetPlayerData(targetID).Prototype.Guns.MountedGun;
             float bestHeuristic = float.MaxValue;
-            ControlState chosenControl = null;
-            foreach (ControlState control in allControls)
+            VehicleDriveControls chosenControl = new VehicleDriveControls();
+            foreach (VehicleDriveControls control in allControls)
             {
-                DynamicTransform2 possibleState = control.ProcessState(currentVehicleState.DynamicTransform, deltaTime);
+                DynamicTransform2 possibleState = prototype.VehicleDrive(currentVehicleState.DynamicTransform, control, deltaTime);
                 float possibleShotDistance = ShotDistance(possibleState, gunData, target.DynamicTransform.DynamicPosition);
                 float conversePossibleShotDistance = ShotDistance(target.DynamicTransform, targetGunData, possibleState.DynamicPosition);
                 float heuristic = possibleShotDistance - conversePossibleShotDistance;
@@ -82,7 +83,7 @@ namespace MTSCombat
                     chosenControl = control;
                 }
             }
-            return chosenControl;
+            return new VehicleControls(chosenControl, true);
         }
 
         private float ShotDistance(DynamicTransform2 shooter, GunData gun, DynamicPosition2 target)
