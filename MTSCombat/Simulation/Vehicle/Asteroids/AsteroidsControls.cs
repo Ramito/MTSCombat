@@ -18,24 +18,6 @@ namespace MTSCombat.Simulation
 
         private static DynamicTransform2 ProcessState(AsteroidsControlData data, DynamicTransform2 state, VehicleDriveControls controls, float deltaTime)
         {
-            Vector2 thrustDirection = state.Orientation.Facing;
-            Vector2 appliedThrust = data.Acceleration * controls.Axis2 * thrustDirection;
-            Vector2 originalVelocity = state.Velocity;
-            Vector2 newVelocity = originalVelocity + deltaTime * appliedThrust;
-
-            float intendedSpeedSq = newVelocity.LengthSquared();
-            if (intendedSpeedSq > (data.MaxSpeed * data.MaxSpeed))
-            {
-                //NOTE: This is not the most accurate approach, but it is somewhat simpler
-                newVelocity.Normalize();
-                newVelocity = data.MaxSpeed * newVelocity;
-                appliedThrust = (newVelocity - originalVelocity) / deltaTime;
-            }
-
-            Vector2 positionDelta = deltaTime * originalVelocity + 0.5f * (deltaTime * deltaTime) * appliedThrust;
-            Vector2 newPosition = state.Position + positionDelta;
-            DynamicPosition2 resultingDynamicPosition = new DynamicPosition2(newPosition, newVelocity);
-
             float appliedRotationalThrust;
             if (controls.Axis1 != 0f)
             {
@@ -57,6 +39,25 @@ namespace MTSCombat.Simulation
             Orientation2 currentOrientation = state.Orientation;
             Orientation2 resultingOrientation = currentOrientation.RotatedBy(rotatedAmount);
             DynamicOrientation2 resultingDynamicOrientation = new DynamicOrientation2(resultingOrientation, newRotationalVelocity);
+
+            //Use new orientation so that rotating and accelerating rsults in different outputs than just accelerating!
+            Vector2 thrustDirection = resultingDynamicOrientation.Orientation.Facing;
+            Vector2 appliedThrust = data.Acceleration * controls.Axis2 * thrustDirection;
+            Vector2 originalVelocity = state.Velocity;
+            Vector2 newVelocity = originalVelocity + deltaTime * appliedThrust;
+
+            float intendedSpeedSq = newVelocity.LengthSquared();
+            if (intendedSpeedSq > (data.MaxSpeed * data.MaxSpeed))
+            {
+                //NOTE: This is not the most accurate approach, but it is somewhat simpler
+                newVelocity.Normalize();
+                newVelocity = data.MaxSpeed * newVelocity;
+                appliedThrust = (newVelocity - originalVelocity) / deltaTime;
+            }
+
+            Vector2 positionDelta = deltaTime * originalVelocity + 0.5f * (deltaTime * deltaTime) * appliedThrust;
+            Vector2 newPosition = state.Position + positionDelta;
+            DynamicPosition2 resultingDynamicPosition = new DynamicPosition2(newPosition, newVelocity);
 
             return new DynamicTransform2(resultingDynamicPosition, resultingDynamicOrientation);
         }
