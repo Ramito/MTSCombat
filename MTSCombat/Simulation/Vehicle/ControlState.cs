@@ -5,40 +5,38 @@ using System.Diagnostics;
 
 namespace MTSCombat.Simulation
 {
-    public sealed class VehiclePrototype
-    {
-        public readonly float VehicleSize;
-        public readonly VehicleDrive VehicleDrive;
-        public readonly SVCConfig ControlConfig;
-        public readonly GunMount Guns;
+    public delegate DynamicTransform2 VehicleDrive(DynamicTransform2 state, VehicleDriveControls controls, float deltaTime);
 
-        public VehiclePrototype(float size, VehicleDrive drive, SVCConfig controlConfig, GunMount guns)
-        {
-            VehicleSize = size;
-            VehicleDrive = drive;
-            ControlConfig = controlConfig;
-            Guns = guns;
-        }
-    }
-
-    public delegate DynamicTransform2 VehicleDrive(DynamicTransform2 state, StandardVehicleControls controls, float deltaTime);
-
-    public struct StandardVehicleControls
+    public struct VehicleDriveControls
     {
         public readonly float Axis1;
         public readonly float Axis2;
         public readonly float Axis3;
 
-        public StandardVehicleControls(float axis1, float axis2, float axis3)
+        public VehicleDriveControls(float axis1, float axis2, float axis3)
         {
             Axis1 = axis1;
             Axis2 = axis2;
             Axis3 = axis3;
         }
 
-        public StandardVehicleControls(float axis1, float axis2) : this(axis1, axis2, 0f) { }
+        public VehicleDriveControls(float axis1, float axis2) : this(axis1, axis2, 0f) { }
 
-        public StandardVehicleControls(float axis1) : this(axis1, 0f, 0f) { }
+        public VehicleDriveControls(float axis1) : this(axis1, 0f, 0f) { }
+    }
+
+    public struct VehicleControls
+    {
+        public readonly VehicleDriveControls DriveControls;
+        public readonly bool GunTriggerDown;
+
+        public VehicleControls(VehicleDriveControls driveControls) : this(driveControls, false) { }
+
+        public VehicleControls(VehicleDriveControls driveControls, bool gunTriggerDown)
+        {
+            DriveControls = driveControls;
+            GunTriggerDown = gunTriggerDown;
+        }
     }
 
     public struct SVCConfig
@@ -47,9 +45,9 @@ namespace MTSCombat.Simulation
         public readonly float Axis2RateOfChange;
         public readonly float Axis3RateOfChange;
 
-        public readonly StandardVehicleControls DefaultControl;
+        public readonly VehicleDriveControls DefaultControl;
 
-        public SVCConfig(float axis1RateOfChange, float axis2RateOfChange, float axis3RateOfChange, StandardVehicleControls defaultControl)
+        public SVCConfig(float axis1RateOfChange, float axis2RateOfChange, float axis3RateOfChange, VehicleDriveControls defaultControl)
         {
             Axis1RateOfChange = axis1RateOfChange;
             Axis2RateOfChange = axis2RateOfChange;
@@ -57,7 +55,7 @@ namespace MTSCombat.Simulation
             DefaultControl = defaultControl;
         }
 
-        public void GetPossibleControlChanges(StandardVehicleControls currentState, float deltaTime, List<StandardVehicleControls> possibleControls)
+        public void GetPossibleControlChanges(VehicleDriveControls currentState, float deltaTime, List<VehicleDriveControls> possibleControls)
         {
             for (int axis1Delta = -1; axis1Delta < 2; ++axis1Delta)
             {
@@ -80,19 +78,19 @@ namespace MTSCombat.Simulation
                         {
                             continue;
                         }
-                        StandardVehicleControls resulting = new StandardVehicleControls(resultingAxis1Value, resultingAxis2Value, resultingAxis3Value);
+                        VehicleDriveControls resulting = new VehicleDriveControls(resultingAxis1Value, resultingAxis2Value, resultingAxis3Value);
                         possibleControls.Add(resulting);
                     }
                 }
             }
         }
 
-        public StandardVehicleControls GetNextFromPlayerInput(StandardVehicleControls current, StandardPlayerInput playerInput, float deltaTime)
+        public VehicleDriveControls GetNextFromPlayerInput(VehicleDriveControls current, StandardPlayerInput playerInput, float deltaTime)
         {
             float axis1 = ClampAxis(current.Axis1 + deltaTime * Axis1RateOfChange * playerInput.HorizontalInput);
             float axis2 = ClampAxis(current.Axis2 + deltaTime * Axis2RateOfChange * playerInput.VerticalInput);
             float axis3 = ClampAxis(current.Axis3 + deltaTime * Axis3RateOfChange * playerInput.RotationInput);
-            return new StandardVehicleControls(axis1, axis2, axis3);
+            return new VehicleDriveControls(axis1, axis2, axis3);
         }
 
         private bool ValidPermute(int axisDelta, float currentAxisValue, float axisRoC, float deltaTime, out float resultingValue)

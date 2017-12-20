@@ -14,7 +14,8 @@ namespace MTSCombat
         public SimulationState ActiveState { get; private set; }
 
         private ushort RegisteredPlayers = 0;
-        private Dictionary<uint, ControlState> mActiveInput;
+        private Dictionary<uint, VehicleControls> mActiveInput;
+        private SimulationData mSimulationData;
         private SimulationProcessor mSimProcessor;
 
         public const uint kDefaultPlayerID = 0;
@@ -25,24 +26,30 @@ namespace MTSCombat
         public MTSCombatGame(int expectedVehicles, int arenaWidth, int arenaHeight)
         {
             ActiveState = new SimulationState(expectedVehicles, expectedVehicles);
-            mActiveInput = new Dictionary<uint, ControlState>(expectedVehicles);
-            mSimProcessor = new SimulationProcessor(expectedVehicles, arenaWidth, arenaHeight);
+            mActiveInput = new Dictionary<uint, VehicleControls>(expectedVehicles);
+            mSimulationData = new SimulationData(expectedVehicles, arenaWidth, arenaHeight);
+            mSimProcessor = new SimulationProcessor(expectedVehicles);
         }
 
-        public void AddVehicle(VehicleState vehicle, GunMount gunMount)
+        public uint AddVehicle(VehiclePrototype prototype, VehicleState vehicle)
         {
-            PlayerData playerData = new PlayerData(gunMount);
-            mSimProcessor.RegisterVehicle(RegisteredPlayers, playerData, vehicle);
+            PlayerData playerData = new PlayerData(prototype);
+            uint assignedID = RegisteredPlayers;
             ++RegisteredPlayers;
+            mSimulationData.RegisterPlayer(assignedID, playerData);
+            mSimProcessor.RegisterVehicle(assignedID, vehicle);
+            return assignedID;
         }
 
         public void Tick(float deltaTime)
         {
-            var playerControl = ActiveState.GetCurrentControlStateForController(kDefaultPlayerID);
-            if (playerControl != null)
+            VehicleControls playerControl;
+            if (mActiveInput.TryGetValue(kDefaultPlayerID, out playerControl))
             {
                 StandardPlayerInput playerInput = StandardPlayerInput.ProcessKeyboard(Keyboard.GetState());
-                mActiveInput[kDefaultPlayerID] = playerControl.GetNextStateFromInput(playerInput);
+                VehiclePrototype prototype = mSimulationData.GetPlayerData(kDefaultPlayerID).Prototype;
+                VehicleDriveControls newDriveControl = prototype.ControlConfig.GetNextFromPlayerInput(playerControl.DriveControls, playerInput, deltaTime);
+                mActiveInput[kDefaultPlayerID] = new VehicleControls(newDriveControl, playerInput.TriggerInput);
             }
             ControlState currentAIControl = ActiveState.GetCurrentControlStateForController(kDefaultAIID);
             if (currentAIControl != null)
