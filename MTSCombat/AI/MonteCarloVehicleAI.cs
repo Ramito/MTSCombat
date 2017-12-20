@@ -102,6 +102,7 @@ namespace MTSCombat.Simulation
                     targetPrototype.ControlConfig.GetPossibleControlChanges(targetVehicle.ControlState, deltaTime, mControlCache);
                     int random = mRandom.Next(0, mControlCache.Count);
                     mockControls[kTargetID] = new VehicleControls(mControlCache[random]);
+                    mControlCache.Clear();
                     iterationState = SimulationProcessor.ProcessState(iterationState, simulationData, mockControls, deltaTime);
                     if (iterationState.RegisteredHits.ContainsKey(kShooterID))
                     {
