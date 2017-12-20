@@ -1,13 +1,116 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace MTSCombat.Simulation
 {
-    public abstract class ControlState
+    public sealed class VehiclePrototype
     {
-        public abstract DynamicTransform2 ProcessState(DynamicTransform2 state, float deltaTime);
-        public abstract ControlState GetNextStateFromInput(StandardPlayerInput playerInput);
-        public abstract bool GunTriggerDown();
-        public abstract List<ControlState> GetPossibleActions();
+        public readonly float VehicleSize;
+        public readonly VehicleDrive VehicleDrive;
+        public readonly SVCConfig ControlConfig;
+        public readonly GunMount Guns;
+
+        public VehiclePrototype(float size, VehicleDrive drive, SVCConfig controlConfig, GunMount guns)
+        {
+            VehicleSize = size;
+            VehicleDrive = drive;
+            ControlConfig = controlConfig;
+            Guns = guns;
+        }
+    }
+
+    public delegate DynamicTransform2 VehicleDrive(DynamicTransform2 state, StandardVehicleControls controls, float deltaTime);
+
+    public struct StandardVehicleControls
+    {
+        public readonly float Axis1;
+        public readonly float Axis2;
+        public readonly float Axis3;
+
+        public StandardVehicleControls(float axis1, float axis2, float axis3)
+        {
+            Axis1 = axis1;
+            Axis2 = axis2;
+            Axis3 = axis3;
+        }
+
+        public StandardVehicleControls(float axis1, float axis2) : this(axis1, axis2, 0f) { }
+
+        public StandardVehicleControls(float axis1) : this(axis1, 0f, 0f) { }
+    }
+
+    public struct SVCConfig
+    {
+        public readonly float Axis1RateOfChange;
+        public readonly float Axis2RateOfChange;
+        public readonly float Axis3RateOfChange;
+
+        public readonly StandardVehicleControls DefaultControl;
+
+        public SVCConfig(float axis1RateOfChange, float axis2RateOfChange, float axis3RateOfChange, StandardVehicleControls defaultControl)
+        {
+            Axis1RateOfChange = axis1RateOfChange;
+            Axis2RateOfChange = axis2RateOfChange;
+            Axis3RateOfChange = axis3RateOfChange;
+            DefaultControl = defaultControl;
+        }
+
+        public void GetPossibleControlChanges(StandardVehicleControls currentState, float deltaTime, List<StandardVehicleControls> possibleControls)
+        {
+            for (int axis1Delta = -1; axis1Delta < 2; ++axis1Delta)
+            {
+                float resultingAxis1Value;
+                if (!ValidPermute(axis1Delta, currentState.Axis1, Axis1RateOfChange, deltaTime, out resultingAxis1Value))
+                {
+                    continue;
+                }
+                for (int axis2Delta = -1; axis2Delta < 2; ++axis2Delta)
+                {
+                    float resultingAxis2Value;
+                    if (!ValidPermute(axis2Delta, currentState.Axis2, Axis2RateOfChange, deltaTime, out resultingAxis2Value))
+                    {
+                        continue;
+                    }
+                    for (int axis3Delta = -1; axis3Delta < 2; ++axis3Delta)
+                    {
+                        float resultingAxis3Value;
+                        if (!ValidPermute(axis3Delta, currentState.Axis3, Axis3RateOfChange, deltaTime, out resultingAxis3Value))
+                        {
+                            continue;
+                        }
+                        StandardVehicleControls resulting = new StandardVehicleControls(resultingAxis1Value, resultingAxis2Value, resultingAxis3Value);
+                        possibleControls.Add(resulting);
+                    }
+                }
+            }
+        }
+
+        public StandardVehicleControls GetNextFromPlayerInput(StandardVehicleControls current, StandardPlayerInput playerInput, float deltaTime)
+        {
+            float axis1 = ClampAxis(current.Axis1 + deltaTime * Axis1RateOfChange * playerInput.HorizontalInput);
+            float axis2 = ClampAxis(current.Axis2 + deltaTime * Axis2RateOfChange * playerInput.VerticalInput);
+            float axis3 = ClampAxis(current.Axis3 + deltaTime * Axis3RateOfChange * playerInput.RotationInput);
+            return new StandardVehicleControls(axis1, axis2, axis3);
+        }
+
+        private bool ValidPermute(int axisDelta, float currentAxisValue, float axisRoC, float deltaTime, out float resultingValue)
+        {
+            if (axisRoC == 0f)
+            {
+                resultingValue = currentAxisValue;
+                return axisDelta == 0;
+            }
+            Debug.Assert(Math.Abs(axisDelta) == 1);
+            resultingValue = currentAxisValue + axisDelta * deltaTime * axisRoC;
+            resultingValue = ClampAxis(resultingValue);
+            return resultingValue != currentAxisValue;
+        }
+
+        private float ClampAxis(float axisValue)
+        {
+            return MathHelper.Clamp(axisValue, -1f, 1f);
+        }
     }
 }
