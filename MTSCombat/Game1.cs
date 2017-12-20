@@ -63,8 +63,8 @@ namespace MTSCombat
                 size * MTSCombatRenderer.GetRelativeGunMountLocation(1),
                 size * MTSCombatRenderer.GetRelativeGunMountLocation(2)
             };
-            const float barrelReloadTime = 0.3f; 
-            const float gunSpeed = 360f;
+            const float barrelReloadTime = 0.35f; 
+            const float gunSpeed = 375f;
             GunMount gunMount = new GunMount(new GunData(barrelReloadTime, gunSpeed), gunArray);
             return gunMount;
         }
@@ -74,7 +74,7 @@ namespace MTSCombat
             const float vehicleSize = 5f;
             GunMount gunMount = MakeGunMount(vehicleSize);
 
-            AsteroidsControlData data = new AsteroidsControlData(60f, 90f, 10f, 4f);
+            AsteroidsControlData data = new AsteroidsControlData(95f, 150f, 3.25f, 6f);
             VehicleDrive asteroidsDrive = AsteroidsControlsFactory.MakeDrive(data);
 
             VehiclePrototype asteroidsPrototype = new VehiclePrototype(vehicleSize, asteroidsDrive, AsteroidsControlsFactory.StandardConfig, gunMount);

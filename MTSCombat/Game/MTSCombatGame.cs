@@ -76,7 +76,7 @@ namespace MTSCombat
                 DynamicTransform2 possibleState = prototype.VehicleDrive(currentVehicleState.DynamicTransform, control, deltaTime);
                 float possibleShotDistance = ShotDistance(possibleState, gunData, target.DynamicTransform.DynamicPosition);
                 float conversePossibleShotDistance = ShotDistance(target.DynamicTransform, targetGunData, possibleState.DynamicPosition);
-                float heuristic = possibleShotDistance - conversePossibleShotDistance;
+                float heuristic = 0.01f * possibleShotDistance - 150f * conversePossibleShotDistance;
                 if (heuristic < bestHeuristic)
                 {
                     bestHeuristic = heuristic;
