@@ -75,26 +75,26 @@ namespace MTSCombat
             GunMount gunMount = MakeGunMount(vehicleSize);
 
             AsteroidsControlData data = new AsteroidsControlData(60f, 90f, 10f, 4f);
+            VehicleDrive asteroidsDrive = AsteroidsControlsFactory.MakeDrive(data);
 
-            AsteroidsControls asteroidsControls = new AsteroidsControls(data);
+            VehiclePrototype asteroidsPrototype = new VehiclePrototype(vehicleSize, asteroidsDrive, AsteroidsControlsFactory.StandardConfig, gunMount);
+
             Vector2 position = new Vector2(kArenaWidth / 4, kArenaHeight / 4);
             Orientation2 orientation = new Orientation2(MathHelper.PiOver2);
-            DynamicTransform2 initialState = new DynamicTransform2(position, orientation);
-            SpawnVehicle(0, asteroidsControls, gunMount, vehicleSize, initialState);
+            DynamicTransform2 initialPlacement = new DynamicTransform2(position, orientation);
+            SpawnVehicle(asteroidsPrototype, initialPlacement); //TODO: This returns the assigned ID. Use it to setup proper control pipeline
 
-            asteroidsControls = new AsteroidsControls(data);
             position = new Vector2(3 * kArenaWidth / 4, 3 * kArenaHeight / 4);
             orientation = new Orientation2(-MathHelper.PiOver2);
-            initialState = new DynamicTransform2(position, orientation);
-            SpawnVehicle(1, asteroidsControls, gunMount, vehicleSize, initialState);
+            initialPlacement = new DynamicTransform2(position, orientation);
+            SpawnVehicle(asteroidsPrototype, initialPlacement);
         }
 
-        private void SpawnVehicle(uint controllerID, ControlState controls, GunMount guns, float vehicleSize, DynamicTransform2 initialState)
+        private uint SpawnVehicle(VehiclePrototype prototype, DynamicTransform2 placement)
         {
-            VehicleState state = new VehicleState();
-            state.SetControllerID(controllerID);
-            state.SetState(vehicleSize, initialState, controls);
-            mMTSGame.AddVehicle(state, guns);
+            VehicleState initialState = new VehicleState();
+            initialState.SetDriveState(placement, prototype.ControlConfig.DefaultControl);
+            return mMTSGame.AddVehicle(prototype, initialState);
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace MTSCombat
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            mMTSCRenderer.RenderSimState(mMTSGame.ActiveState);
+            mMTSCRenderer.RenderSimState(mMTSGame.SimulationData, mMTSGame.ActiveState);
 
             base.Draw(gameTime);
         }

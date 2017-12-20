@@ -55,11 +55,13 @@
     <Compile Include="Simulation\Gun\GunData.cs" />
     <Compile Include="Simulation\Gun\GunMount.cs" />
     <Compile Include="Simulation\Gun\GunState.cs" />
+    <Compile Include="Simulation\SimulationData.cs" />
     <Compile Include="Simulation\Vehicle\Asteroids\AsteroidsControls.cs" />
     <Compile Include="Simulation\Vehicle\ControlState.cs" />
     <Compile Include="Simulation\SimulationProcessor.cs" />
     <Compile Include="Simulation\SimulationState.cs" />
     <Compile Include="Simulation\Core\DynamicTransform2.cs" />
+    <Compile Include="Simulation\Vehicle\VehiclePrototype.cs" />
     <Compile Include="Simulation\Vehicle\VehicleState.cs" />
   </ItemGroup>
   <ItemGroup>
