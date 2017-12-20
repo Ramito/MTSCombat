@@ -5,33 +5,14 @@ using System.Diagnostics;
 
 namespace MTSCombat.Simulation
 {
-    public sealed class SimulationProcessor
+    public static class SimulationProcessor
     {
-        private Dictionary<uint, VehicleState> mPendingVehicleSpawns;
-
-        public SimulationProcessor(int players)
-        {
-            mPendingVehicleSpawns = new Dictionary<uint, VehicleState>(players);
-        }
-
-        public void RegisterVehicle(uint playerID, VehicleState initialState)
-        {
-            mPendingVehicleSpawns.Add(playerID, initialState);
-        }
-
         //Player input gets processed into a ControlState, and AI will provide a control state
-        public SimulationState ProcessState(SimulationState state, SimulationData simulationData, Dictionary<uint, VehicleControls> controllerInputs, float deltaTime)
+        public static SimulationState ProcessState(SimulationState state, SimulationData simulationData, Dictionary<uint, VehicleControls> controllerInputs, float deltaTime)
         {
             int currentVehicleCount = state.Vehicles.Count;
             int currentProjectileCount = state.Projectiles.Count;
-            int spawningVehicles = mPendingVehicleSpawns.Count;
-            SimulationState nextSimState = new SimulationState(currentVehicleCount + spawningVehicles, currentProjectileCount + currentProjectileCount);
-            foreach (var kvp in mPendingVehicleSpawns)
-            {
-                state.Vehicles.Add(kvp.Key, kvp.Value);
-                controllerInputs[kvp.Key] = new VehicleControls(simulationData.GetPlayerData(kvp.Key).Prototype.ControlConfig.DefaultControl);  //Default control state on first frame
-            }
-            mPendingVehicleSpawns.Clear();
+            SimulationState nextSimState = new SimulationState(currentVehicleCount, currentProjectileCount + currentProjectileCount);
             foreach (var currentVehicleStateKVP in state.Vehicles)
             {
                 uint controllerID = currentVehicleStateKVP.Key;
@@ -89,14 +70,14 @@ namespace MTSCombat.Simulation
             return nextSimState;
         }
 
-        private DynamicTransform2 ProcessVehicleDrive(DynamicTransform2 currentVehicleState, VehiclePrototype prototype, VehicleDriveControls controlState, float deltaTime)
+        private static DynamicTransform2 ProcessVehicleDrive(DynamicTransform2 currentVehicleState, VehiclePrototype prototype, VehicleDriveControls controlState, float deltaTime)
         {
             var newDynamicTransform = prototype.VehicleDrive(currentVehicleState, controlState, deltaTime);
             //Gun recoil would go here
             return newDynamicTransform;
         }
 
-        private DynamicTransform2 ProcessCollision(DynamicTransform2 newDynamicTransform, VehiclePrototype prototype, SimulationData simulationData)
+        private static DynamicTransform2 ProcessCollision(DynamicTransform2 newDynamicTransform, VehiclePrototype prototype, SimulationData simulationData)
         {
             float penetration;
             Vector2 collisionAxis;
@@ -110,13 +91,13 @@ namespace MTSCombat.Simulation
             return newDynamicTransform;
         }
 
-        private bool ProjectileHitsVehicle(DynamicTransform2 vehicleTransformState, VehiclePrototype prototype, DynamicPosition2 projectileState)
+        private static bool ProjectileHitsVehicle(DynamicTransform2 vehicleTransformState, VehiclePrototype prototype, DynamicPosition2 projectileState)
         {
             float distanceSq = (projectileState.Position - vehicleTransformState.Position).LengthSquared();
             return distanceSq <= (prototype.VehicleSize * prototype.VehicleSize);
         }
 
-        private GunState ProcessGunstate(GunMount mount, GunState gunState, bool triggerDown, float deltaTime, out bool projectileFired)
+        private static GunState ProcessGunstate(GunMount mount, GunState gunState, bool triggerDown, float deltaTime, out bool projectileFired)
         {
             int nextGunToFire = gunState.NextGunToFire;
             float timeToNextShot = Math.Max(gunState.TimeToNextShot - deltaTime, 0f);
