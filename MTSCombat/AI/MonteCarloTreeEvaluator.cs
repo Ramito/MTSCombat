@@ -14,7 +14,7 @@ namespace MTSCombat
         private VehicleState mTargetRootState;
         private readonly List<DynamicPosition2> mEnemyProjectiles;
         private readonly List<Option> mOptions;
-        private readonly List<VehicleDriveControls> mControlOptionCache;
+        private readonly List<VehicleDriveControls>  mControlOptionCache;
         private readonly Dictionary<uint, VehicleControls> mControlInputMock;
         private readonly Random mRandom = new Random();
 
@@ -151,12 +151,8 @@ namespace MTSCombat
 
         private VehicleDriveControls GetRandomControl(VehicleState fromState, VehiclePrototype prototype)
         {
-            Debug.Assert(mControlOptionCache.Count == 0);
-            prototype.ControlConfig.GetPossibleControlChanges(fromState.ControlState, mDeltaTime, mControlOptionCache);
-            int randomChoice = mRandom.Next(0, mControlOptionCache.Count);
-            VehicleDriveControls chosenControl = mControlOptionCache[randomChoice];
-            mControlOptionCache.Clear();
-            return chosenControl;
+            int randomChoice = mRandom.Next(0, prototype.ControlConfig.PossibleDeltas.Length);
+            return prototype.ControlConfig.GetControlFromDeltas(prototype.ControlConfig.PossibleDeltas[randomChoice], fromState.ControlState, mDeltaTime);
         }
 
         private VehicleState GetRandomNextState(VehicleState fromState, VehiclePrototype prototype)
