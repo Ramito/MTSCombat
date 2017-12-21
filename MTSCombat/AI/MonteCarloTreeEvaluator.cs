@@ -181,7 +181,7 @@ namespace MTSCombat
                 ControlOption = controlOption;
                 ResultingState = resultingState;
                 TimesRun = 0;
-                AveragePayout = 0f;
+                AveragePayout = float.MaxValue;
             }
         }
     }
