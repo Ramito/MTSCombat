@@ -42,6 +42,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AI\MonteCarloTreeEvaluator.cs" />
     <Compile Include="Game1.cs" />
     <Compile Include="Game\MTSCombatGame.cs" />
     <Compile Include="Game\StandardPlayerInput.cs" />

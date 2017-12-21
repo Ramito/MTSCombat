@@ -92,8 +92,7 @@ namespace MTSCombat
 
         private uint SpawnVehicle(VehiclePrototype prototype, DynamicTransform2 placement)
         {
-            VehicleState initialState = new VehicleState();
-            initialState.SetDriveState(placement, prototype.ControlConfig.DefaultControl);
+            VehicleState initialState = new VehicleState(placement, prototype.ControlConfig.DefaultControl);
             return mMTSGame.AddVehicle(prototype, initialState);
         }
 

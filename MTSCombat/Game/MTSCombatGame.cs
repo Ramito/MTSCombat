@@ -28,10 +28,9 @@ namespace MTSCombat
 
         public uint AddVehicle(VehiclePrototype prototype, VehicleState vehicle)
         {
-            PlayerData playerData = new PlayerData(prototype);
             uint assignedID = RegisteredPlayers;
             ++RegisteredPlayers;
-            SimulationData.RegisterPlayer(assignedID, playerData);
+            SimulationData.RegisterPlayer(assignedID, prototype);
             ActiveState.Vehicles.Add(assignedID, vehicle);
             ActiveState.SetProjectileCount(assignedID, 1);
             return assignedID;
@@ -43,13 +42,13 @@ namespace MTSCombat
             if (mActiveInput.TryGetValue(kDefaultPlayerID, out playerControl))
             {
                 StandardPlayerInput playerInput = StandardPlayerInput.ProcessKeyboard(Keyboard.GetState());
-                VehiclePrototype prototype = SimulationData.GetPlayerData(kDefaultPlayerID).Prototype;
+                VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultPlayerID);
                 VehicleDriveControls newDriveControl = prototype.ControlConfig.GetNextFromPlayerInput(playerControl.DriveControls, playerInput, deltaTime);
                 mActiveInput[kDefaultPlayerID] = new VehicleControls(newDriveControl, playerInput.TriggerInput);
             }
             else
             {
-                VehiclePrototype prototype = SimulationData.GetPlayerData(kDefaultPlayerID).Prototype;
+                VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultPlayerID);
                 mActiveInput[kDefaultPlayerID] = new VehicleControls(prototype.ControlConfig.DefaultControl);
             }
             VehicleControls currentAIControl;
@@ -60,7 +59,7 @@ namespace MTSCombat
             }
             else
             {
-                VehiclePrototype prototype = SimulationData.GetPlayerData(kDefaultAIID).Prototype;
+                VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultAIID);
                 mActiveInput[kDefaultAIID] = new VehicleControls(prototype.ControlConfig.DefaultControl);
             }
             ActiveState = SimulationProcessor.ProcessState(ActiveState, SimulationData, mActiveInput, deltaTime);

@@ -26,7 +26,7 @@ namespace MTSCombat.Simulation
                 uint controllerID = currentVehicleStateKVP.Key;
                 Debug.Assert(controllerInputs.ContainsKey(controllerID));
 
-                VehiclePrototype prototype = simulationData.GetPlayerData(controllerID).Prototype;
+                VehiclePrototype prototype = simulationData.GetVehiclePrototype(controllerID);
                 VehicleControls inputControlState = controllerInputs[controllerID];
                 VehicleState currentState = currentVehicleStateKVP.Value;
 
@@ -43,9 +43,7 @@ namespace MTSCombat.Simulation
                     SpawnProjectile(controllerID, state, projectileState);
                 }
 
-                VehicleState newVehicleState = new VehicleState();
-                newVehicleState.SetDriveState(newDynamicTransform, inputControlState.DriveControls);
-                newVehicleState.SetGunState(nextGunState);
+                VehicleState newVehicleState = new VehicleState(newDynamicTransform, inputControlState.DriveControls, nextGunState);
 
                 nextSimState.Vehicles.Add(controllerID, newVehicleState);
             }
@@ -63,7 +61,7 @@ namespace MTSCombat.Simulation
                         {
                             if (vehicleToHit.Key != projectileKVP.Key)
                             {
-                                if (ProjectileHitsVehicle(vehicleToHit.Value.DynamicTransform, simulationData.GetPlayerData(vehicleToHit.Key).Prototype, nextProjectileState))
+                                if (ProjectileHitsVehicle(vehicleToHit.Value.DynamicTransform, simulationData.GetVehiclePrototype(vehicleToHit.Key), nextProjectileState))
                                 {
                                     hit = true;
                                     break;

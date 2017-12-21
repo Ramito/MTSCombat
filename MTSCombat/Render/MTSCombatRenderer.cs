@@ -40,7 +40,7 @@ namespace MTSCombat
             int colorIndex = 1;
             foreach (var vehicleKVP in vehicles)
             {
-                VehiclePrototype prototype = simData.GetPlayerData(vehicleKVP.Key).Prototype;
+                VehiclePrototype prototype = simData.GetVehiclePrototype(vehicleKVP.Key);
                 SetVehicleVerticesOnHash(prototype, vehicleKVP.Value);
                 mPrimitiveRenderer.PushPolygon(mVertexHash, sColors[colorIndex]);
                 colorIndex = (colorIndex + 1) % sColors.Length;

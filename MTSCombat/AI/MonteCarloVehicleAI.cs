@@ -30,36 +30,40 @@ namespace MTSCombat.Simulation
 
         private VehicleControls GetAIInput(uint playerID, SimulationState simulationState, SimulationData simulationData, uint targetID, float deltaTime)
         {
-            VehiclePrototype prototype = simulationData.GetPlayerData(playerID).Prototype;
-            VehicleState currentVehicleState = simulationState.Vehicles[playerID];
-            GunData gunData = prototype.Guns.MountedGun;
-            prototype.ControlConfig.GetPossibleControlChanges(currentVehicleState.ControlState, deltaTime, mControlCache);
-            VehicleState target = simulationState.Vehicles[targetID];
-            GunData targetGunData = simulationData.GetPlayerData(targetID).Prototype.Guns.MountedGun;
-            float bestHeuristic = float.MaxValue;
-            VehicleDriveControls chosenControl = new VehicleDriveControls();
-            DynamicTransform2 chosenDynamicState = new DynamicTransform2();
-            foreach (VehicleDriveControls control in mControlCache)
-            {
-                DynamicTransform2 possibleState = prototype.VehicleDrive(currentVehicleState.DynamicTransform, control, deltaTime);
-                float possibleShotDistance = ShotDistance(possibleState, gunData, target.DynamicTransform.DynamicPosition);
-                float conversePossibleShotDistance = ShotDistance(target.DynamicTransform, targetGunData, possibleState.DynamicPosition);
-                float heuristic = possibleShotDistance - 2f * conversePossibleShotDistance;
-                if (heuristic < bestHeuristic)
-                {
-                    bestHeuristic = heuristic;
-                    chosenControl = control;
-                    chosenDynamicState = possibleState;
-                }
-            }
-            mControlCache.Clear();
+            MonteCarloTreeEvaluator treeEvaluator = new MonteCarloTreeEvaluator(playerID, targetID, simulationState, simulationData, deltaTime);
+            treeEvaluator.Expand(20);
+            VehicleDriveControls chosenControl = treeEvaluator.GetBestControl();
+
+            //VehiclePrototype prototype = simulationData.GetVehiclePrototype(playerID);
+            //VehicleState currentVehicleState = simulationState.Vehicles[playerID];
+            //GunData gunData = prototype.Guns.MountedGun;
+            //prototype.ControlConfig.GetPossibleControlChanges(currentVehicleState.ControlState, deltaTime, mControlCache);
+            //VehicleState target = simulationState.Vehicles[targetID];
+            //GunData targetGunData = simulationData.GetVehiclePrototype(targetID).Guns.MountedGun;
+            //float bestHeuristic = float.MaxValue;
+            //VehicleDriveControls chosenControl = new VehicleDriveControls();
+            //DynamicTransform2 chosenDynamicState = new DynamicTransform2();
+            //foreach (VehicleDriveControls control in mControlCache)
+            //{
+            //    DynamicTransform2 possibleState = prototype.VehicleDrive(currentVehicleState.DynamicTransform, control, deltaTime);
+            //    float possibleShotDistance = ShotDistance(possibleState, gunData, target.DynamicTransform.DynamicPosition);
+            //    float conversePossibleShotDistance = ShotDistance(target.DynamicTransform, targetGunData, possibleState.DynamicPosition);
+            //    float heuristic = possibleShotDistance - 2f * conversePossibleShotDistance;
+            //    if (heuristic < bestHeuristic)
+            //    {
+            //        bestHeuristic = heuristic;
+            //        chosenControl = control;
+            //        chosenDynamicState = possibleState;
+            //    }
+            //}
+            //mControlCache.Clear();
             //TODO: Parallelize?
-            VehiclePrototype targetPrototype = simulationData.GetPlayerData(targetID).Prototype;
-            bool shouldShoot = ShouldShoot(simulationData, chosenDynamicState, prototype.Guns, target, targetPrototype, deltaTime);
-            return new VehicleControls(chosenControl, shouldShoot);
+            //VehiclePrototype targetPrototype = simulationData.GetVehiclePrototype(targetID);
+            //bool shouldShoot = ShouldShoot(simulationData, chosenDynamicState, prototype.Guns, target, targetPrototype, deltaTime);
+            return new VehicleControls(chosenControl, false);
         }
 
-        private float ShotDistance(DynamicTransform2 shooter, GunData gun, DynamicPosition2 target)
+        public static float ShotDistance(DynamicTransform2 shooter, GunData gun, DynamicPosition2 target)
         {
             Vector2 shotVelocity = gun.ShotSpeed * shooter.Orientation.Facing + shooter.Velocity;
 
@@ -92,7 +96,7 @@ namespace MTSCombat.Simulation
             DynamicPosition2 projectileState = SimulationProcessor.CreateProjectileState(shooter, gun, 0); //Default barrel
             initialTestState.SetProjectileCount(kShooterID, 1);
             SimulationProcessor.SpawnProjectile(kShooterID, initialTestState, projectileState);
-            int trials = 10;
+            int trials = 20;
             while (--trials >= 0)
             {
                 SimulationState iterationState = initialTestState;
@@ -112,7 +116,7 @@ namespace MTSCombat.Simulation
                     {
                         if (iterationState.Projectiles[kShooterID].Count == 0)
                         {
-                            //Projectile flew of or otherwise expired
+                            //Projectile flew off or otherwise expired
                             break;
                         }
                     }
