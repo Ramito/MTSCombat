@@ -37,19 +37,15 @@ namespace MTSCombat.Simulation
             float currentDistanceSq = shooterToTarget.LengthSquared();
             Vector2 relativeVelocities = target.Velocity - shotVelocity;
             float dot = Vector2.Dot(shooterToTarget, relativeVelocities);
-            float relativeVelocityModule = relativeVelocities.LengthSquared();
-            float timeToImpact = -dot / relativeVelocityModule;
-            if (timeToImpact < 0f)
+            float relativeVelocityModuleSq = relativeVelocities.LengthSquared();
+            float timeToClosest = -dot / relativeVelocityModuleSq;
+            if (timeToClosest < 0f)
             {
-                return currentDistanceSq + (timeToImpact * timeToImpact) * relativeVelocityModule;
             }
             if (relativeVelocityModule < MTSCombatGame.kWorkingPrecision)
             {
                 return currentDistanceSq;
             }
-            float shotDistance = currentDistanceSq + timeToImpact * ((2f * dot) + (timeToImpact * currentDistanceSq));
-            Debug.Assert(!float.IsInfinity(shotDistance));
-            return shotDistance;
         }
 
         private bool ShouldShoot(SimulationData simulationData, DynamicTransform2 shooter, GunMount gun, VehicleState targetVehicle, VehiclePrototype targetPrototype, float deltaTime)

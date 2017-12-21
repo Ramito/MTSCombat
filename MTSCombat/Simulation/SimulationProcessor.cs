@@ -64,7 +64,7 @@ namespace MTSCombat.Simulation
                             if (targetVehicleIndex != projectileIndex)
                             {
                                 VehicleState vehicleToHit = state.Vehicles[targetVehicleIndex];
-                                if (ProjectileHitsVehicle(vehicleToHit.DynamicTransform, simulationData.GetVehiclePrototype(state.IndexToID[targetVehicleIndex]), projectile))
+                                if (ProjectileHitsVehicle(vehicleToHit.DynamicTransform, simulationData.GetVehiclePrototype(state.IndexToID[targetVehicleIndex]), projectile, deltaTime))
                                 {
                                     hit = true;
                                     break;
@@ -131,10 +131,20 @@ namespace MTSCombat.Simulation
             return newDynamicTransform;
         }
 
-        private static bool ProjectileHitsVehicle(DynamicTransform2 vehicleTransformState, VehiclePrototype prototype, DynamicPosition2 projectileState)
+        private static bool ProjectileHitsVehicle(DynamicTransform2 vehicleTransformState, VehiclePrototype prototype, DynamicPosition2 projectileState, float deltaTime)
         {
-            float distanceSq = (projectileState.Position - vehicleTransformState.Position).LengthSquared();
-            return distanceSq <= (prototype.VehicleSize * prototype.VehicleSize);
+            Vector2 projectileToVehicle = vehicleTransformState.Position - projectileState.Position;
+            float currentDistanceSq = projectileToVehicle.LengthSquared();
+            Vector2 relativeVelocities = vehicleTransformState.Velocity - projectileState.Velocity;
+            float dot = Vector2.Dot(projectileToVehicle, relativeVelocities);
+            if (dot <= 0f)
+            {
+                return currentDistanceSq <= prototype.VehicleSize * prototype.VehicleSize;
+            }
+            float relativeVelocityModuleSq = relativeVelocities.LengthSquared();
+            float timeToClosest = Math.Min(-dot / relativeVelocityModuleSq, deltaTime);
+            float closestDistanceSq = currentDistanceSq + timeToClosest * ((2f * dot) + (timeToClosest * relativeVelocityModuleSq));
+            return closestDistanceSq <= prototype.VehicleSize * prototype.VehicleSize;
         }
 
         private static GunState ProcessGunstate(GunMount mount, GunState gunState, bool triggerDown, float deltaTime, out bool projectileFired)
