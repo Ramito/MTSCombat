@@ -41,11 +41,14 @@ namespace MTSCombat.Simulation
             float timeToClosest = -dot / relativeVelocityModuleSq;
             if (timeToClosest < 0f)
             {
+                //TODO: Makes sense, but I wonder how smooth the resulting function is. I'd like to analyze this
+                //Penalize by how far in the past the projectile would need to back track to hit
+                return currentDistanceSq + (timeToClosest * timeToClosest) * relativeVelocityModuleSq;
             }
-            if (relativeVelocityModule < MTSCombatGame.kWorkingPrecision)
-            {
-                return currentDistanceSq;
-            }
+            //Squared distance to shot!
+            float shotDistanceSq = currentDistanceSq + timeToClosest * ((2f * dot) + (timeToClosest * relativeVelocityModuleSq));
+            Debug.Assert(!float.IsInfinity(shotDistanceSq));
+            return shotDistanceSq;
         }
 
         private bool ShouldShoot(SimulationData simulationData, DynamicTransform2 shooter, GunMount gun, VehicleState targetVehicle, VehiclePrototype targetPrototype, float deltaTime)
