@@ -17,7 +17,7 @@ namespace MTSCombat
         public const uint kDefaultPlayerID = 0;
         public const uint kDefaultAIID = 1;
 
-        MonteCarloVehicleAI mAI = new MonteCarloVehicleAI();
+        MonteCarloVehicleAI mAI;
 
         public MTSCombatGame(int expectedVehicles, int arenaWidth, int arenaHeight)
         {
@@ -38,6 +38,10 @@ namespace MTSCombat
 
         public void Tick(float deltaTime)
         {
+            if (mAI == null)
+            {
+                mAI = new MonteCarloVehicleAI(kDefaultAIID, kDefaultPlayerID, deltaTime, SimulationData);   //TODO: inconsistently assuming delta time fixed here and otherwise elsewhere
+            }
             VehicleControls playerControl;
             if (mActiveInput.TryGetValue(kDefaultPlayerID, out playerControl))
             {
@@ -51,17 +55,9 @@ namespace MTSCombat
                 VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultPlayerID);
                 mActiveInput[kDefaultPlayerID] = new VehicleControls(prototype.ControlConfig.DefaultControl);
             }
-            VehicleControls currentAIControl;
-            if (mActiveInput.TryGetValue(kDefaultAIID, out currentAIControl))
-            {
-                VehicleControls aiControlInput = mAI.ComputeControl(kDefaultAIID, ActiveState, SimulationData, deltaTime);
-                mActiveInput[kDefaultAIID] = aiControlInput;
-            }
-            else
-            {
-                VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultAIID);
-                mActiveInput[kDefaultAIID] = new VehicleControls(prototype.ControlConfig.DefaultControl);
-            }
+            VehicleControls aiControlInput = mAI.ComputeControl(ActiveState);
+            mActiveInput[kDefaultAIID] = aiControlInput;
+
             ActiveState = SimulationProcessor.ProcessState(ActiveState, SimulationData, mActiveInput, deltaTime);
         }
     }

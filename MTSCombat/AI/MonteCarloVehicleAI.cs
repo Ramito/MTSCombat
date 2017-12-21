@@ -7,13 +7,18 @@ namespace MTSCombat.Simulation
 {
     public sealed class MonteCarloVehicleAI
     {
-        public readonly Random mRandom = new Random();
-        private readonly List<VehicleDriveControls> mControlCache = new List<VehicleDriveControls>(3 * 3 * 3);
+        //public readonly Random mRandom = new Random();
+        //private readonly List<VehicleDriveControls> mControlCache = new List<VehicleDriveControls>(3 * 3 * 3);
+        private readonly MonteCarloTreeEvaluator mTreeEvaluator;
 
-        public VehicleControls ComputeControl(uint controlledVehicleID, SimulationState currentSimState, SimulationData simData, float deltaTime)
+        public MonteCarloVehicleAI(uint playerID, uint targetID, float deltaTime, SimulationData simulationData)
         {
-            uint targetID = FindTargetID(controlledVehicleID, currentSimState);
-            return GetAIInput(controlledVehicleID, currentSimState, simData, targetID, deltaTime);
+            mTreeEvaluator = new MonteCarloTreeEvaluator(playerID, targetID, deltaTime, simulationData);
+        }
+
+        public VehicleControls ComputeControl(SimulationState currentSimState)
+        {
+            return GetAIInput(currentSimState);
         }
 
         private uint FindTargetID(uint controlledID, SimulationState currentSimState)
@@ -28,11 +33,11 @@ namespace MTSCombat.Simulation
             return uint.MaxValue;
         }
 
-        private VehicleControls GetAIInput(uint playerID, SimulationState simulationState, SimulationData simulationData, uint targetID, float deltaTime)
+        private VehicleControls GetAIInput(SimulationState simulationState)
         {
-            MonteCarloTreeEvaluator treeEvaluator = new MonteCarloTreeEvaluator(playerID, targetID, simulationState, simulationData, deltaTime);
-            treeEvaluator.Expand(20);
-            VehicleDriveControls chosenControl = treeEvaluator.GetBestControl();
+            mTreeEvaluator.ResetAndSetup(simulationState);
+            mTreeEvaluator.Expand(200);
+            VehicleDriveControls chosenControl = mTreeEvaluator.GetBestControl();
 
             //VehiclePrototype prototype = simulationData.GetVehiclePrototype(playerID);
             //VehicleState currentVehicleState = simulationState.Vehicles[playerID];
@@ -88,40 +93,40 @@ namespace MTSCombat.Simulation
 
         private bool ShouldShoot(SimulationData simulationData, DynamicTransform2 shooter, GunMount gun, VehicleState targetVehicle, VehiclePrototype targetPrototype, float deltaTime)
         {
-            const uint kShooterID = 0;
-            const uint kTargetID = 1;
-            SimulationState initialTestState = new SimulationState(1);
-            Dictionary<uint, VehicleControls> mockControls = new Dictionary<uint, VehicleControls>(1);
-            initialTestState.Vehicles[kTargetID] = targetVehicle;
-            DynamicPosition2 projectileState = SimulationProcessor.CreateProjectileState(shooter, gun, 0); //Default barrel
-            initialTestState.SetProjectileCount(kShooterID, 1);
-            SimulationProcessor.SpawnProjectile(kShooterID, initialTestState, projectileState);
-            int trials = 20;
-            while (--trials >= 0)
-            {
-                SimulationState iterationState = initialTestState;
-                const int kMaxIterations = 10 * 30;  //Ten seconds at 30 fps
-                for (int i = 0; i < kMaxIterations; ++i)
-                {
-                    targetPrototype.ControlConfig.GetPossibleControlChanges(targetVehicle.ControlState, deltaTime, mControlCache);
-                    int random = mRandom.Next(0, mControlCache.Count);
-                    mockControls[kTargetID] = new VehicleControls(mControlCache[random]);
-                    mControlCache.Clear();
-                    iterationState = SimulationProcessor.ProcessState(iterationState, simulationData, mockControls, deltaTime);
-                    if (iterationState.RegisteredHits.ContainsKey(kShooterID))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        if (iterationState.Projectiles[kShooterID].Count == 0)
-                        {
-                            //Projectile flew off or otherwise expired
-                            break;
-                        }
-                    }
-                }
-            }
+        //    const uint kShooterID = 0;
+        //    const uint kTargetID = 1;
+        //    SimulationState initialTestState = new SimulationState(1);
+        //    Dictionary<uint, VehicleControls> mockControls = new Dictionary<uint, VehicleControls>(1);
+        //    initialTestState.Vehicles[kTargetID] = targetVehicle;
+        //    DynamicPosition2 projectileState = SimulationProcessor.CreateProjectileState(shooter, gun, 0); //Default barrel
+        //    initialTestState.SetProjectileCount(kShooterID, 1);
+        //    SimulationProcessor.SpawnProjectile(kShooterID, initialTestState, projectileState);
+        //    int trials = 20;
+        //    while (--trials >= 0)
+        //    {
+        //        SimulationState iterationState = initialTestState;
+        //        const int kMaxIterations = 10 * 30;  //Ten seconds at 30 fps
+        //        for (int i = 0; i < kMaxIterations; ++i)
+        //        {
+        //            targetPrototype.ControlConfig.GetPossibleControlChanges(targetVehicle.ControlState, deltaTime, mControlCache);
+        //            int random = mRandom.Next(0, mControlCache.Count);
+        //            mockControls[kTargetID] = new VehicleControls(mControlCache[random]);
+        //            mControlCache.Clear();
+        //            iterationState = SimulationProcessor.ProcessState(iterationState, simulationData, mockControls, deltaTime);
+        //            if (iterationState.RegisteredHits.ContainsKey(kShooterID))
+        //            {
+        //                return true;
+        //            }
+        //            else
+        //            {
+        //                if (iterationState.Projectiles[kShooterID].Count == 0)
+        //                {
+        //                    //Projectile flew off or otherwise expired
+        //                    break;
+        //                }
+        //            }
+        //        }
+        //    }
             return false;
         }
     }

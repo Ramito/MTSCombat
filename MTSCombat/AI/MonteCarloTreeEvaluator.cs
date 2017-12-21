@@ -11,7 +11,7 @@ namespace MTSCombat
         private readonly uint mTargetID;
         private readonly float mDeltaTime;
         private readonly SimulationData mSimData;
-        private readonly VehicleState mTargetRootState;
+        private VehicleState mTargetRootState;
         private readonly List<DynamicPosition2> mEnemyProjectiles;
         private readonly List<Option> mOptions;
         private readonly List<VehicleDriveControls> mControlOptionCache;
@@ -20,32 +20,40 @@ namespace MTSCombat
 
         private int mIterations;
 
-        public MonteCarloTreeEvaluator(uint controlledID, uint targetID, SimulationState currentSimState, SimulationData simData, float deltaTime)
+        public MonteCarloTreeEvaluator(uint controlledID, uint targetID, float deltaTime, SimulationData simData)
         {
             mControlledID = controlledID;
-            mTargetID = controlledID;
-            mDeltaTime = deltaTime;
+            mTargetID = targetID;
+            mDeltaTime = 2.5f * deltaTime;
             mSimData = simData;
-            mTargetRootState = currentSimState.Vehicles[targetID];
-            mEnemyProjectiles = new List<DynamicPosition2>(currentSimState.Projectiles[targetID]);
-
-            VehiclePrototype controlledPrototype = simData.GetVehiclePrototype(controlledID);
-            VehicleState controlledState = currentSimState.Vehicles[controlledID];
-
+            mEnemyProjectiles = new List<DynamicPosition2>();
             mControlOptionCache = new List<VehicleDriveControls>(3 * 3 * 3);
-            controlledPrototype.ControlConfig.GetPossibleControlChanges(controlledState.ControlState, deltaTime, mControlOptionCache);
-            mOptions = new List<Option>(mControlOptionCache.Count);
+            mOptions = new List<Option>(mControlOptionCache.Capacity);
+            mControlInputMock = new Dictionary<uint, VehicleControls>(2);
+        }
+
+        public void ResetAndSetup(SimulationState currentSimState)
+        {
+            mTargetRootState = currentSimState.Vehicles[mTargetID];
+            mEnemyProjectiles.Clear();
+            mEnemyProjectiles.AddRange(currentSimState.Projectiles[mTargetID]);
+
+            VehiclePrototype controlledPrototype = mSimData.GetVehiclePrototype(mControlledID);
+            VehicleState controlledState = currentSimState.Vehicles[mControlledID];
+
+            mOptions.Clear();
+
+            controlledPrototype.ControlConfig.GetPossibleControlChanges(controlledState.ControlState, mDeltaTime, mControlOptionCache);
             foreach (var driveControlOption in mControlOptionCache)
             {
                 VehicleControls controlOption = new VehicleControls(driveControlOption);
-                DynamicTransform2 resultingDynamicState = controlledPrototype.VehicleDrive(controlledState.DynamicTransform, driveControlOption, deltaTime);
+                DynamicTransform2 resultingDynamicState = controlledPrototype.VehicleDrive(controlledState.DynamicTransform, driveControlOption, mDeltaTime);
                 VehicleState resultingVehicleState = new VehicleState(resultingDynamicState, driveControlOption);   //We should not care for the gun state... I thnk...
 
                 Option option = new Option(controlOption, resultingVehicleState);
                 mOptions.Add(option);
             }
             mControlOptionCache.Clear();
-            mControlInputMock = new Dictionary<uint, VehicleControls>(2);
             mIterations = 0;
         }
 
@@ -55,6 +63,7 @@ namespace MTSCombat
             {
                 ExpandOption(option);
             }
+            mIterations = 1;
             while(mIterations < iterations)
             {
                 Option option = GetBestOption();
@@ -70,17 +79,22 @@ namespace MTSCombat
 
         private Option GetBestOption()
         {
-            float bestPayout = float.MinValue;
+            float bestPayout = float.MaxValue;
             Option bestOption = null;
             float logTimesRun = (float)Math.Log(mIterations + 1);
             foreach (var option in mOptions)
             {
-                float payout = option.AveragePayout + (logTimesRun / option.TimesRun);
-                if (payout > bestPayout)
+                float payout = option.AveragePayout;// - 500000 * (logTimesRun / option.TimesRun);
+                if (payout < bestPayout)
                 {
                     bestPayout = payout;
                     bestOption = option;
                 }
+            }
+            if (bestOption == null)
+            {
+                int random = mRandom.Next(0, mOptions.Count);
+                bestOption = mOptions[random];
             }
             return bestOption;
         }
@@ -91,17 +105,17 @@ namespace MTSCombat
         {
             SimulationState simState = GetPrimedState(option);
             float statePayout = RolloutStateAndGetPayout(simState);
-            ++option.TimesRun;
             float totalPayout = option.AveragePayout * option.TimesRun;
             float averageFactor = 1f / (option.TimesRun + 1);
-            option.AveragePayout += ((totalPayout * averageFactor) + (statePayout * averageFactor));
+            option.AveragePayout = ((totalPayout * averageFactor) + (statePayout * averageFactor));
+            ++option.TimesRun;
         }
 
         private float RolloutStateAndGetPayout(SimulationState simState)
         {
             float payout = 0f;
             SimulationState iterationState = simState;
-            const float kSecondsToSimulate = 2.5f;
+            const float kSecondsToSimulate = 2f;
             int kIterations = (int) (0.5f + (kSecondsToSimulate / mDeltaTime));
             for (int i = 0; i < kIterations; ++i)
             {
@@ -111,15 +125,15 @@ namespace MTSCombat
                 if (iterationState.RegisteredHits.Count != 0)
                 {
                     Debug.Assert(iterationState.RegisteredHits[mTargetID] != 0);
-                    payout = float.MinValue;
+                    payout = float.MaxValue;
                     break;
                 }
                 DynamicTransform2 targetDynamicState = iterationState.Vehicles[mTargetID].DynamicTransform;
                 DynamicTransform2 controlledDynamicState = iterationState.Vehicles[mControlledID].DynamicTransform;
                 GunData targetsGun = mSimData.GetVehiclePrototype(mTargetID).Guns.MountedGun;
                 GunData controlledGun = mSimData.GetVehiclePrototype(mControlledID).Guns.MountedGun;
-                payout += (MonteCarloVehicleAI.ShotDistance(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition) * mDeltaTime);
-                payout -= (MonteCarloVehicleAI.ShotDistance(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition) * mDeltaTime);
+                payout -= (MonteCarloVehicleAI.ShotDistance(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition) / kIterations);
+                payout += (MonteCarloVehicleAI.ShotDistance(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition) / kIterations);
             }
             return payout;
         }
