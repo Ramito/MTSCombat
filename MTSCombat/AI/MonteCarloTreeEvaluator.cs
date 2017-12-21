@@ -34,12 +34,12 @@ namespace MTSCombat
 
         public void ResetAndSetup(SimulationState currentSimState)
         {
-            mTargetRootState = currentSimState.Vehicles[mTargetID];
+            mTargetRootState = currentSimState.GetVehicle(mTargetID);
             mEnemyProjectiles.Clear();
-            mEnemyProjectiles.AddRange(currentSimState.Projectiles[mTargetID]);
+            mEnemyProjectiles.AddRange(currentSimState.GetProjectiles(mTargetID));
 
             VehiclePrototype controlledPrototype = mSimData.GetVehiclePrototype(mControlledID);
-            VehicleState controlledState = currentSimState.Vehicles[mControlledID];
+            VehicleState controlledState = currentSimState.GetVehicle(mControlledID);
 
             mOptions.Clear();
             controlledPrototype.ControlConfig.GetPossibleControlChanges(controlledState.ControlState, mDeltaTime, mControlOptionCache);
@@ -128,20 +128,25 @@ namespace MTSCombat
             int iterations = 11;
             for (int i = 0; i < iterations; ++i)
             {
-                mControlInputMock[mControlledID] = new VehicleControls(GetRandomControl(iterationState.Vehicles[mControlledID], mSimData.GetVehiclePrototype(mControlledID), mRandom, randomDelta));
-                mControlInputMock[mTargetID] = new VehicleControls(GetRandomControl(iterationState.Vehicles[mTargetID], mSimData.GetVehiclePrototype(mTargetID), mRandom, randomDelta));
+                VehicleState controlledVehicle = iterationState.GetVehicle(mControlledID);
+                VehiclePrototype controlledPrototype = mSimData.GetVehiclePrototype(mControlledID);
+
+                VehicleState targetVehicle = iterationState.GetVehicle(mTargetID);
+                VehiclePrototype targetPrototype = mSimData.GetVehiclePrototype(mTargetID);
+
+                mControlInputMock[mControlledID] = new VehicleControls(GetRandomControl(controlledVehicle, controlledPrototype, mRandom, randomDelta));
+                mControlInputMock[mTargetID] = new VehicleControls(GetRandomControl(targetVehicle, targetPrototype, mRandom, randomDelta));
                 iterationState = SimulationProcessor.ProcessState(iterationState, mSimData, mControlInputMock, randomDelta);
-                if (iterationState.RegisteredHits.Count != 0)
+                if (iterationState.GetRegisteredHits(mTargetID) != 0)
                 {
-                    Debug.Assert(iterationState.RegisteredHits[mTargetID] != 0);
                     float timeToHit = (i * randomDelta);
                     payout = int.MaxValue - (timeToHit * timeToHit);
                      break;
                 }
-                DynamicTransform2 targetDynamicState = iterationState.Vehicles[mTargetID].DynamicTransform;
-                DynamicTransform2 controlledDynamicState = iterationState.Vehicles[mControlledID].DynamicTransform;
-                GunData targetsGun = mSimData.GetVehiclePrototype(mTargetID).Guns.MountedGun;
-                GunData controlledGun = mSimData.GetVehiclePrototype(mControlledID).Guns.MountedGun;
+                DynamicTransform2 controlledDynamicState = controlledVehicle.DynamicTransform;
+                GunData controlledGun = controlledPrototype.Guns.MountedGun;
+                DynamicTransform2 targetDynamicState = targetVehicle.DynamicTransform;
+                GunData targetsGun = targetPrototype.Guns.MountedGun;
                 float offensivePayout = MonteCarloVehicleAI.ShotDistance(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
                 float defensivePayout = MonteCarloVehicleAI.ShotDistance(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
                 payout = Math.Min(payout, 10f * offensivePayout - defensivePayout);
@@ -152,11 +157,11 @@ namespace MTSCombat
         private SimulationState GetPrimedState(Option option)
         {
             SimulationState simState = new SimulationState(2);
-            simState.Vehicles[mControlledID] = option.ResultingState;
+            simState.AddVehicle(mControlledID, option.ResultingState);
             simState.SetProjectileCount(mTargetID, mEnemyProjectiles.Count);
-            simState.Projectiles[mTargetID].AddRange(mEnemyProjectiles);
+            simState.GetProjectiles(mTargetID).AddRange(mEnemyProjectiles);
             VehicleState targetRandomState = GetRandomNextState(mTargetRootState, mSimData.GetVehiclePrototype(mTargetID), mRandom, mDeltaTime);
-            simState.Vehicles[mTargetID] = targetRandomState;
+            simState.AddVehicle(mTargetID, targetRandomState);
             return simState;
         }
 

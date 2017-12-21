@@ -10,58 +10,61 @@ namespace MTSCombat.Simulation
         //Player input gets processed into a ControlState, and AI will provide a control state
         public static SimulationState ProcessState(SimulationState state, SimulationData simulationData, Dictionary<uint, VehicleControls> controllerInputs, float deltaTime)
         {
-            int currentVehicleCount = state.Vehicles.Count;
+            int currentVehicleCount = state.Vehicles.Length;
             SimulationState nextSimState = new SimulationState(currentVehicleCount);
-            foreach (var kvp in state.Projectiles)
+            int totalProjectileCount = 0;
+            for (int i = 0; i < state.Projectiles.Length; ++i)
             {
-                uint id = kvp.Key;
-                List<DynamicPosition2> projectileList;
-                if (state.Projectiles.TryGetValue(id, out projectileList))
+                var projectiles = state.Projectiles[i];
+                int localCount = 0;
+                if (projectiles != null)
                 {
-                    nextSimState.SetProjectileCount(id, projectileList.Count);
+                    localCount = projectiles.Count;
                 }
+                totalProjectileCount += localCount;
+                nextSimState.SetProjectileCount(state.IndexToID[i], localCount + 1);
             }
-            foreach (var currentVehicleStateKVP in state.Vehicles)
+            for (int vehicleIndex = 0; vehicleIndex < state.Vehicles.Length; ++vehicleIndex)
             {
-                uint controllerID = currentVehicleStateKVP.Key;
+                uint controllerID = state.IndexToID[vehicleIndex];
                 Debug.Assert(controllerInputs.ContainsKey(controllerID));
 
                 VehiclePrototype prototype = simulationData.GetVehiclePrototype(controllerID);
                 VehicleControls inputControlState = controllerInputs[controllerID];
-                VehicleState currentState = currentVehicleStateKVP.Value;
+                VehicleState currentVehicleState = state.Vehicles[vehicleIndex];
 
-                DynamicTransform2 newDynamicTransform = ProcessVehicleDrive(currentState.DynamicTransform, prototype, inputControlState.DriveControls, deltaTime);
+                DynamicTransform2 newDynamicTransform = ProcessVehicleDrive(currentVehicleState.DynamicTransform, prototype, inputControlState.DriveControls, deltaTime);
                 newDynamicTransform = ProcessCollision(newDynamicTransform, prototype, simulationData);
 
-                GunState currentGunState = currentState.GunState;
+                GunState currentGunState = currentVehicleState.GunState;
                 GunMount gunMount = prototype.Guns;
                 bool projectileFired;
                 GunState nextGunState = ProcessGunstate(gunMount, currentGunState, inputControlState.GunTriggerDown, deltaTime, out projectileFired);
                 if (projectileFired)
                 {
                     DynamicPosition2 projectileState = CreateProjectileState(newDynamicTransform, gunMount, currentGunState.NextGunToFire);
-                    SpawnProjectile(controllerID, state, projectileState);
+                    SpawnProjectile(vehicleIndex, state, projectileState);
                 }
 
                 VehicleState newVehicleState = new VehicleState(newDynamicTransform, inputControlState.DriveControls, nextGunState);
 
-                nextSimState.Vehicles.Add(controllerID, newVehicleState);
+                nextSimState.AddVehicle(controllerID, newVehicleState);
             }
             //TODO: The above resulting transforms can be put in a collection ready for collision detection below!
-            foreach (var projectileKVP in state.Projectiles)
+            for (int projectileIndex = 0; projectileIndex < state.Projectiles.Length; ++projectileIndex)
             {
-                foreach (var projectile in projectileKVP.Value)
+                var projectiles = state.Projectiles[projectileIndex];
+                if (projectiles != null)
                 {
-                    Vector2 nextPosition = projectile.Position + deltaTime * projectile.Velocity;
-                    if (simulationData.InsideArena(nextPosition))
+                    foreach (var projectile in projectiles)
                     {
                         bool hit = false;
-                        DynamicPosition2 nextProjectileState = new DynamicPosition2(nextPosition, projectile.Velocity);
-                        foreach (var vehicleToHit in nextSimState.Vehicles)
+                        for (int targetVehicleIndex = 0; targetVehicleIndex < state.Vehicles.Length; ++targetVehicleIndex)
                         {
-                            if (vehicleToHit.Key != projectileKVP.Key)
+                            if (targetVehicleIndex != projectileIndex)
                             {
-                                if (ProjectileHitsVehicle(vehicleToHit.Value.DynamicTransform, simulationData.GetVehiclePrototype(vehicleToHit.Key), nextProjectileState))
+                                VehicleState vehicleToHit = state.Vehicles[targetVehicleIndex];
+                                if (ProjectileHitsVehicle(vehicleToHit.DynamicTransform, simulationData.GetVehiclePrototype(state.IndexToID[targetVehicleIndex]), projectile))
                                 {
                                     hit = true;
                                     break;
@@ -70,11 +73,16 @@ namespace MTSCombat.Simulation
                         }
                         if (!hit)
                         {
-                            nextSimState.Projectiles[projectileKVP.Key].Add(nextProjectileState);
+                            Vector2 nextPosition = projectile.Position + deltaTime * projectile.Velocity;
+                            if (simulationData.InsideArena(nextPosition))
+                            {
+                                DynamicPosition2 nextProjectileState = new DynamicPosition2(nextPosition, projectile.Velocity);
+                                nextSimState.Projectiles[projectileIndex].Add(nextProjectileState);
+                            }
                         }
                         else
                         {
-                            RegisterHit(nextSimState, projectileKVP.Key);
+                            RegisterHit(nextSimState, projectileIndex);
                         }
                     }
                 }
@@ -90,19 +98,16 @@ namespace MTSCombat.Simulation
             DynamicPosition2 projectileState = new DynamicPosition2(shotPosition, shotVelocity);
             return projectileState;
         }
-        public static void SpawnProjectile(uint shooterID, SimulationState state, DynamicPosition2 projectileState)
+
+        public static void SpawnProjectile(int index, SimulationState state, DynamicPosition2 projectileState)
         {
-            state.Projectiles[shooterID].Add(projectileState);
+            state.Projectiles[index].Add(projectileState);
         }
 
-        private static void RegisterHit(SimulationState simState, uint hitVehicleID)
+        private static void RegisterHit(SimulationState simState, int index)
         {
-            int currentCount;
-            if (!simState.RegisteredHits.TryGetValue(hitVehicleID, out currentCount))
-            {
-                currentCount = 0;
-            }
-            simState.RegisteredHits[hitVehicleID] = currentCount + 1;
+            int currentCount = simState.RegisteredHits[index];
+            simState.RegisteredHits[index] = currentCount + 1;
         }
 
         private static DynamicTransform2 ProcessVehicleDrive(DynamicTransform2 currentVehicleState, VehiclePrototype prototype, VehicleDriveControls controlState, float deltaTime)

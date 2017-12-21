@@ -31,7 +31,7 @@ namespace MTSCombat
             uint assignedID = RegisteredPlayers;
             ++RegisteredPlayers;
             SimulationData.RegisterPlayer(assignedID, prototype);
-            ActiveState.Vehicles.Add(assignedID, vehicle);
+            ActiveState.AddVehicle(assignedID, vehicle);
             ActiveState.SetProjectileCount(assignedID, 1);
             return assignedID;
         }

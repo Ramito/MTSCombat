@@ -21,18 +21,6 @@ namespace MTSCombat.Simulation
             return GetAIInput(currentSimState);
         }
 
-        private uint FindTargetID(uint controlledID, SimulationState currentSimState)
-        {
-            foreach (var kvp in currentSimState.Vehicles)
-            {
-                if (kvp.Key != controlledID)
-                {
-                    return kvp.Key;
-                }
-            }
-            return uint.MaxValue;
-        }
-
         private VehicleControls GetAIInput(SimulationState simulationState)
         {
             mTreeEvaluator.ResetAndSetup(simulationState);
