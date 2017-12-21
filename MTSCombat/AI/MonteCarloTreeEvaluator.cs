@@ -13,8 +13,8 @@ namespace MTSCombat
         private readonly SimulationData mSimData;
         private VehicleState mTargetRootState;
         private readonly List<DynamicPosition2> mEnemyProjectiles;
-        private readonly List<Option> mOptions;
         private readonly List<VehicleDriveControls>  mControlOptionCache;
+        private readonly List<Option> mOptions;
         private readonly Dictionary<uint, VehicleControls> mControlInputMock;
         private readonly Random mRandom = new Random();
 
@@ -80,30 +80,28 @@ namespace MTSCombat
 
         private Option GetBestOption()
         {
-            float bestPayout = float.MaxValue;
+            float bestPayout = float.PositiveInfinity;
             Option bestOption = null;
-            float logTimesRun = (float)Math.Log(mIterations + 1);
             foreach (var option in mOptions)
             {
-                float payout = option.AveragePayout;// - 500000 * (logTimesRun / option.TimesRun);
+                float payout = option.AveragePayout;
                 if (payout <= bestPayout)
                 {
-                    if ((bestOption != null) && (payout == bestPayout))
+                    if (payout == bestPayout)
                     {
-                        if (option.ControlOption.DriveControls.NormSq() >= bestOption.ControlOption.DriveControls.NormSq())
+                        if (bestOption != null)
                         {
-                            continue;
+                            if (option.ControlOption.DriveControls.NormSq() >= bestOption.ControlOption.DriveControls.NormSq())
+                            {
+                                continue;
+                            }
                         }
                     }
                     bestPayout = payout;
                     bestOption = option;
                 }
             }
-            if (bestOption == null)
-            {
-                int random = mRandom.Next(0, mOptions.Count);
-                bestOption = mOptions[random];
-            }
+            Debug.Assert(bestOption != null);
             return bestOption;
         }
 
@@ -121,26 +119,32 @@ namespace MTSCombat
 
         private float RolloutStateAndGetPayout(SimulationState simState)
         {
+            const float kDeltaContraction = 0.75f;
+            const float kDeltaExpansion = 1.75f;
+            float randomDeltaFactor = kDeltaContraction + ((kDeltaExpansion - kDeltaContraction) * (float)mRandom.NextDouble());
+            float randomDelta = randomDeltaFactor * mDeltaTime;
             float payout = float.MaxValue;
             SimulationState iterationState = simState;
-            const int kIterations = 30;
-            for (int i = 0; i < kIterations; ++i)
+            int iterations = 11;
+            for (int i = 0; i < iterations; ++i)
             {
-                mControlInputMock[mControlledID] = new VehicleControls(GetRandomControl(iterationState.Vehicles[mControlledID], mSimData.GetVehiclePrototype(mControlledID)));
-                mControlInputMock[mTargetID] = new VehicleControls(GetRandomControl(iterationState.Vehicles[mTargetID], mSimData.GetVehiclePrototype(mTargetID)));
-                iterationState = SimulationProcessor.ProcessState(iterationState, mSimData, mControlInputMock, mDeltaTime);
+                mControlInputMock[mControlledID] = new VehicleControls(GetRandomControl(iterationState.Vehicles[mControlledID], mSimData.GetVehiclePrototype(mControlledID), mRandom, randomDelta));
+                mControlInputMock[mTargetID] = new VehicleControls(GetRandomControl(iterationState.Vehicles[mTargetID], mSimData.GetVehiclePrototype(mTargetID), mRandom, randomDelta));
+                iterationState = SimulationProcessor.ProcessState(iterationState, mSimData, mControlInputMock, randomDelta);
                 if (iterationState.RegisteredHits.Count != 0)
                 {
                     Debug.Assert(iterationState.RegisteredHits[mTargetID] != 0);
-                    payout = float.MaxValue - i;
-                    break;
+                    float timeToHit = (i * randomDelta);
+                    payout = int.MaxValue - (timeToHit * timeToHit);
+                     break;
                 }
                 DynamicTransform2 targetDynamicState = iterationState.Vehicles[mTargetID].DynamicTransform;
                 DynamicTransform2 controlledDynamicState = iterationState.Vehicles[mControlledID].DynamicTransform;
                 GunData targetsGun = mSimData.GetVehiclePrototype(mTargetID).Guns.MountedGun;
                 GunData controlledGun = mSimData.GetVehiclePrototype(mControlledID).Guns.MountedGun;
-                payout -= (MonteCarloVehicleAI.ShotDistance(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition) / kIterations);
-                payout += (MonteCarloVehicleAI.ShotDistance(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition) / kIterations);
+                float offensivePayout = MonteCarloVehicleAI.ShotDistance(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
+                float defensivePayout = MonteCarloVehicleAI.ShotDistance(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
+                payout = Math.Min(payout, 10f * offensivePayout - defensivePayout);
             }
             return payout;
         }
@@ -151,21 +155,21 @@ namespace MTSCombat
             simState.Vehicles[mControlledID] = option.ResultingState;
             simState.SetProjectileCount(mTargetID, mEnemyProjectiles.Count);
             simState.Projectiles[mTargetID].AddRange(mEnemyProjectiles);
-            VehicleState targetRandomState = GetRandomNextState(mTargetRootState, mSimData.GetVehiclePrototype(mTargetID));
+            VehicleState targetRandomState = GetRandomNextState(mTargetRootState, mSimData.GetVehiclePrototype(mTargetID), mRandom, mDeltaTime);
             simState.Vehicles[mTargetID] = targetRandomState;
             return simState;
         }
 
-        private VehicleDriveControls GetRandomControl(VehicleState fromState, VehiclePrototype prototype)
+        private static VehicleDriveControls GetRandomControl(VehicleState fromState, VehiclePrototype prototype, Random randomizer, float deltaTime)
         {
-            int randomChoice = mRandom.Next(0, prototype.ControlConfig.PossibleDeltas.Length);
-            return prototype.ControlConfig.GetControlFromDeltas(prototype.ControlConfig.PossibleDeltas[randomChoice], fromState.ControlState, mDeltaTime);
+            int randomChoice = randomizer.Next(0, prototype.ControlConfig.PossibleDeltas.Length);
+            return prototype.ControlConfig.GetControlFromDeltas(prototype.ControlConfig.PossibleDeltas[randomChoice], fromState.ControlState, deltaTime);
         }
 
-        private VehicleState GetRandomNextState(VehicleState fromState, VehiclePrototype prototype)
+        private static VehicleState GetRandomNextState(VehicleState fromState, VehiclePrototype prototype, Random randomizer, float deltaTime)
         {
-            VehicleDriveControls randomControl = GetRandomControl(fromState, prototype);
-            DynamicTransform2 resultingDynamic = prototype.VehicleDrive(fromState.DynamicTransform, randomControl, mDeltaTime);
+            VehicleDriveControls randomControl = GetRandomControl(fromState, prototype, randomizer, deltaTime);
+            DynamicTransform2 resultingDynamic = prototype.VehicleDrive(fromState.DynamicTransform, randomControl, deltaTime);
             return new VehicleState(resultingDynamic, randomControl);
         }
 
