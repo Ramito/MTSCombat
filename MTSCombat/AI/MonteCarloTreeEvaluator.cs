@@ -24,7 +24,7 @@ namespace MTSCombat
         {
             mControlledID = controlledID;
             mTargetID = targetID;
-            mDeltaTime = 2.5f * deltaTime;
+            mDeltaTime = deltaTime;
             mSimData = simData;
             mEnemyProjectiles = new List<DynamicPosition2>();
             mControlOptionCache = new List<VehicleDriveControls>(3 * 3 * 3);
@@ -42,7 +42,6 @@ namespace MTSCombat
             VehicleState controlledState = currentSimState.Vehicles[mControlledID];
 
             mOptions.Clear();
-
             controlledPrototype.ControlConfig.GetPossibleControlChanges(controlledState.ControlState, mDeltaTime, mControlOptionCache);
             foreach (var driveControlOption in mControlOptionCache)
             {
@@ -74,7 +73,9 @@ namespace MTSCombat
 
         public VehicleDriveControls GetBestControl()
         {
-            return GetBestOption().ControlOption.DriveControls;
+            Option bestOption = GetBestOption();
+            mOptions.Clear();
+            return bestOption.ControlOption.DriveControls;
         }
 
         private Option GetBestOption()
@@ -85,8 +86,15 @@ namespace MTSCombat
             foreach (var option in mOptions)
             {
                 float payout = option.AveragePayout;// - 500000 * (logTimesRun / option.TimesRun);
-                if (payout < bestPayout)
+                if (payout <= bestPayout)
                 {
+                    if ((bestOption != null) && (payout == bestPayout))
+                    {
+                        if (option.ControlOption.DriveControls.NormSq() >= bestOption.ControlOption.DriveControls.NormSq())
+                        {
+                            continue;
+                        }
+                    }
                     bestPayout = payout;
                     bestOption = option;
                 }
@@ -113,10 +121,9 @@ namespace MTSCombat
 
         private float RolloutStateAndGetPayout(SimulationState simState)
         {
-            float payout = 0f;
+            float payout = float.MaxValue;
             SimulationState iterationState = simState;
-            const float kSecondsToSimulate = 2f;
-            int kIterations = (int) (0.5f + (kSecondsToSimulate / mDeltaTime));
+            const int kIterations = 30;
             for (int i = 0; i < kIterations; ++i)
             {
                 mControlInputMock[mControlledID] = new VehicleControls(GetRandomControl(iterationState.Vehicles[mControlledID], mSimData.GetVehiclePrototype(mControlledID)));
@@ -125,7 +132,7 @@ namespace MTSCombat
                 if (iterationState.RegisteredHits.Count != 0)
                 {
                     Debug.Assert(iterationState.RegisteredHits[mTargetID] != 0);
-                    payout = float.MaxValue;
+                    payout = float.MaxValue - i;
                     break;
                 }
                 DynamicTransform2 targetDynamicState = iterationState.Vehicles[mTargetID].DynamicTransform;
