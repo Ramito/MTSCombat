@@ -29,15 +29,15 @@ namespace MTSCombat.Simulation
             return chosenControl;
         }
 
-        public static float ShotDistance(DynamicTransform2 shooter, GunData gun, DynamicPosition2 target)
+        public static float ShotDistanceSq(DynamicTransform2 shooter, GunData gun, DynamicPosition2 target)
         {
             Vector2 shotPosition = shooter.Position;
             Vector2 shotVelocity = gun.ShotSpeed * shooter.Orientation.Facing + shooter.Velocity;
             DynamicPosition2 initialProjectileState = new DynamicPosition2(shotPosition, shotVelocity);
-            return ShotDistance(initialProjectileState, target);
+            return ShotDistanceSq(initialProjectileState, target);
         }
 
-        public static float ShotDistance(DynamicPosition2 projectile, DynamicPosition2 target)
+        public static float ShotDistanceSq(DynamicPosition2 projectile, DynamicPosition2 target)
         {
             Vector2 shooterToTarget = target.Position - projectile.Position;
             float currentDistanceSq = shooterToTarget.LengthSquared();

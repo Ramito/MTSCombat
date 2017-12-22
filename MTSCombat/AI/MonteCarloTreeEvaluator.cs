@@ -87,7 +87,7 @@ namespace MTSCombat
         {
             Option bestOption = GetBestOption(false);
             mOptions.Clear();
-            return new VehicleControls(bestOption.ControlOption.DriveControls, (bestOption.Payout.ShotsLanded > 0));
+            return new VehicleControls(bestOption.ControlOption.DriveControls, ((float)bestOption.Payout.ShotsLanded / bestOption.TimesRun > 0.25f));
         }
 
         private Option GetBestOption(bool exploring)
@@ -130,10 +130,10 @@ namespace MTSCombat
             OptionPayout payout = new OptionPayout();
             payout.InitializeForExpand();
 
-            const float kDeltaContraction = 0.5f;
+            const float kDeltaContraction = 0.75f;
             const float kDeltaExpansion = 30f;
             SimulationState iterationState = simState;
-            const int kIterations = 11;
+            const int kIterations = 9;
             for (int i = 0; i < kIterations; ++i)
             {
                 float randomDeltaFactor = kDeltaContraction + ((kDeltaExpansion - kDeltaContraction) * (float)mRandom.NextDouble());
@@ -156,16 +156,20 @@ namespace MTSCombat
                 DynamicTransform2 targetDynamicState = targetVehicle.DynamicTransform;
                 GunData targetsGun = targetPrototype.Guns.MountedGun;
 
-                float bestShot = MonteCarloVehicleAI.ShotDistance(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
+                float bestShot = MonteCarloVehicleAI.ShotDistanceSq(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
                 bestShot = Math.Min(payout.BestShotDistance, bestShot);
                 payout.BestShotDistance = bestShot;
 
-                float bestShotForTarget = MonteCarloVehicleAI.ShotDistance(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
+                float bestShotForTarget = MonteCarloVehicleAI.ShotDistanceSq(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
                 bestShotForTarget = Math.Min(payout.BestShotDistanceForTarget, bestShotForTarget);
                 foreach (var projectile in iterationState.GetProjectiles(mTargetID))
                 {
-                    float projectileShotDistance = MonteCarloVehicleAI.ShotDistance(projectile, controlledVehicle.DynamicTransform.DynamicPosition);
-                    bestShotForTarget = Math.Min(projectileShotDistance, bestShotForTarget);
+                    //Experimental: Penalize target shot distance so projectiles create more urgency to avoid
+                    float projectileShotDistanceSq = MonteCarloVehicleAI.ShotDistanceSq(projectile, controlledVehicle.DynamicTransform.DynamicPosition);
+                    if (projectileShotDistanceSq <= (controlledPrototype.VehicleSize * controlledPrototype.VehicleSize))
+                    {
+                        bestShotForTarget -= projectileShotDistanceSq;
+                    }
                 }
                 payout.BestShotDistanceForTarget = bestShotForTarget;
             }

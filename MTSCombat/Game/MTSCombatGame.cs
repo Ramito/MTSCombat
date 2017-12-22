@@ -38,8 +38,8 @@ namespace MTSCombat
         {
             if (mAIIterator.Count == 0)
             {
-                CreateAITask(0, 1, deltaTime, 600);
-                CreateAITask(1, 0, deltaTime, 600);
+                CreateAITask(0, 1, deltaTime, 950);
+                CreateAITask(1, 0, deltaTime, 950);
             }
 
             foreach (uint id in mAIIterator)

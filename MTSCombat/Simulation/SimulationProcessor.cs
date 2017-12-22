@@ -123,8 +123,9 @@ namespace MTSCombat.Simulation
             Vector2 collisionAxis;
             if (simulationData.CollisionWithArenaBounds(prototype.VehicleSize, newDynamicTransform.Position, out penetration, out collisionAxis))
             {
-                Vector2 newPosition = newDynamicTransform.Position + 2f * penetration * collisionAxis;
-                Vector2 newVelocity = newDynamicTransform.Velocity - 2f * Vector2.Dot(newDynamicTransform.Velocity, collisionAxis) * collisionAxis;
+                const float kBounce = 1.75f;
+                Vector2 newPosition = newDynamicTransform.Position + kBounce * penetration * collisionAxis;
+                Vector2 newVelocity = newDynamicTransform.Velocity - kBounce * Vector2.Dot(newDynamicTransform.Velocity, collisionAxis) * collisionAxis;
                 DynamicPosition2 newDynamicPosition = new DynamicPosition2(newPosition, newVelocity);
                 newDynamicTransform = new DynamicTransform2(newDynamicPosition, newDynamicTransform.DynamicOrientation);
             }

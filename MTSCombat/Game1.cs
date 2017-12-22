@@ -64,28 +64,28 @@ namespace MTSCombat
                 size * MTSCombatRenderer.GetRelativeGunMountLocation(2)
             };
             const float barrelReloadTime = 1.5f; 
-            const float gunSpeed = 400f;
+            const float gunSpeed = 680f;
             GunMount gunMount = new GunMount(new GunData(barrelReloadTime, gunSpeed), gunArray);
             return gunMount;
         }
 
         private void SpawnVehicles()
         {
-            const float vehicleSize = 5f;
+            const float vehicleSize = 5.5f;
             GunMount gunMount = MakeGunMount(vehicleSize);
 
-            AsteroidsControlData data = new AsteroidsControlData(95f, 150f, 3.25f, 6f);
+            AsteroidsControlData data = new AsteroidsControlData(190f, 175f, 6.25f, 7.25f);
             VehicleDrive asteroidsDrive = AsteroidsControlsFactory.MakeDrive(data);
 
             VehiclePrototype asteroidsPrototype = new VehiclePrototype(vehicleSize, asteroidsDrive, AsteroidsControlsFactory.StandardConfig, gunMount);
 
             Vector2 position = new Vector2(kArenaWidth / 4, kArenaHeight / 4);
-            Orientation2 orientation = new Orientation2(MathHelper.PiOver2);
+            Orientation2 orientation = new Orientation2(MathHelper.Pi);
             DynamicTransform2 initialPlacement = new DynamicTransform2(position, orientation);
             SpawnVehicle(asteroidsPrototype, initialPlacement); //TODO: This returns the assigned ID. Use it to setup proper control pipeline
 
             position = new Vector2(3 * kArenaWidth / 4, 3 * kArenaHeight / 4);
-            orientation = new Orientation2(-MathHelper.PiOver2);
+            orientation = new Orientation2(0f);
             initialPlacement = new DynamicTransform2(position, orientation);
             SpawnVehicle(asteroidsPrototype, initialPlacement);
         }
