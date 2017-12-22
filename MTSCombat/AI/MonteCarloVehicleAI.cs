@@ -7,12 +7,12 @@ namespace MTSCombat.Simulation
 {
     public sealed class MonteCarloVehicleAI
     {
-        //public readonly Random mRandom = new Random();
-        //private readonly List<VehicleDriveControls> mControlCache = new List<VehicleDriveControls>(3 * 3 * 3);
+        private readonly int mSamples;
         private readonly MonteCarloTreeEvaluator mTreeEvaluator;
 
-        public MonteCarloVehicleAI(uint playerID, uint targetID, float deltaTime, SimulationData simulationData)
+        public MonteCarloVehicleAI(uint playerID, uint targetID, float deltaTime, SimulationData simulationData, int samples)
         {
+            mSamples = samples;
             mTreeEvaluator = new MonteCarloTreeEvaluator(playerID, targetID, deltaTime, simulationData);
         }
 
@@ -24,7 +24,7 @@ namespace MTSCombat.Simulation
         private VehicleControls GetAIInput(SimulationState simulationState)
         {
             mTreeEvaluator.ResetAndSetup(simulationState);
-            mTreeEvaluator.Expand(360);
+            mTreeEvaluator.Expand(mSamples);
             VehicleControls chosenControl = mTreeEvaluator.GetBestControl();
             return chosenControl;
         }

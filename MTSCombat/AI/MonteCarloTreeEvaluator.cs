@@ -37,10 +37,21 @@ namespace MTSCombat
         {
             mTargetRootState = currentSimState.GetVehicle(mTargetID);
             mEnemyProjectiles.Clear();
-            mEnemyProjectiles.AddRange(currentSimState.GetProjectiles(mTargetID));
 
             VehiclePrototype controlledPrototype = mSimData.GetVehiclePrototype(mControlledID);
             VehicleState controlledState = currentSimState.GetVehicle(mControlledID);
+
+            var projectiles = currentSimState.GetProjectiles(mTargetID);
+            foreach (var projectile in projectiles)
+            {
+                Vector2 relativePosition = controlledState.DynamicTransform.Position - projectile.Position;
+                Vector2 relativeVelocity = controlledState.DynamicTransform.Velocity - projectile.Velocity;
+                if (Vector2.Dot(relativePosition, relativeVelocity) >= 0f)
+                {
+                    mEnemyProjectiles.Add(projectile);
+                }
+            }
+
 
             mOptions.Clear();
             controlledPrototype.ControlConfig.GetPossibleControlChanges(controlledState.ControlState, mDeltaTime, mControlOptionCache);
@@ -119,10 +130,10 @@ namespace MTSCombat
             OptionPayout payout = new OptionPayout();
             payout.InitializeForExpand();
 
-            const float kDeltaContraction = 0.9f;
-            const float kDeltaExpansion = 2.2f;
+            const float kDeltaContraction = 0.5f;
+            const float kDeltaExpansion = 30f;
             SimulationState iterationState = simState;
-            const int kIterations = 14;
+            const int kIterations = 11;
             for (int i = 0; i < kIterations; ++i)
             {
                 float randomDeltaFactor = kDeltaContraction + ((kDeltaExpansion - kDeltaContraction) * (float)mRandom.NextDouble());
@@ -167,7 +178,7 @@ namespace MTSCombat
             //Add the state resulting from this option, and a mock shot to track hits
             simState.AddVehicle(mControlledID, option.ResultingState);
             simState.SetProjectileCount(mControlledID, 1);
-            DynamicPosition2 mockProjectile = SimulationProcessor.CreateProjectileState(option.ResultingState.DynamicTransform, mSimData.GetVehiclePrototype(mControlledID).Guns, 0);
+            DynamicPosition2 mockProjectile = SimulationProcessor.CreateProjectileState(option.ResultingState.DynamicTransform, mSimData.GetVehiclePrototype(mControlledID).Guns, 0, mDeltaTime);
             simState.GetProjectiles(mControlledID).Add(mockProjectile);
             //Add the existing enemy projectiles, if they have any hope to hit
             simState.SetProjectileCount(mTargetID, mEnemyProjectiles.Count);

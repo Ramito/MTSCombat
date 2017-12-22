@@ -42,8 +42,8 @@ namespace MTSCombat.Simulation
                 GunState nextGunState = ProcessGunstate(gunMount, currentGunState, inputControlState.GunTriggerDown, deltaTime, out projectileFired);
                 if (projectileFired)
                 {
-                    DynamicPosition2 projectileState = CreateProjectileState(newDynamicTransform, gunMount, currentGunState.NextGunToFire);
-                    SpawnProjectile(vehicleIndex, state, projectileState);
+                    DynamicPosition2 projectileState = CreateProjectileState(newDynamicTransform, gunMount, currentGunState.NextGunToFire, deltaTime);
+                    SpawnProjectile(vehicleIndex, nextSimState, projectileState);
                 }
 
                 VehicleState newVehicleState = new VehicleState(newDynamicTransform, inputControlState.DriveControls, nextGunState);
@@ -90,12 +90,12 @@ namespace MTSCombat.Simulation
             return nextSimState;
         }
 
-        public static DynamicPosition2 CreateProjectileState(DynamicTransform2 shooterDynamicState, GunMount gunMount, int firingBarrel)
+        public static DynamicPosition2 CreateProjectileState(DynamicTransform2 shooterDynamicState, GunMount gunMount, int firingBarrel, float deltaTime)
         {
             Vector2 gunLocalOffset = gunMount.LocalMountOffsets[firingBarrel];
             Vector2 shotPosition = shooterDynamicState.Position + shooterDynamicState.Orientation.LocalToGlobal(gunLocalOffset);
             Vector2 shotVelocity = gunMount.MountedGun.ShotSpeed * shooterDynamicState.Orientation.Facing + shooterDynamicState.Velocity;
-            DynamicPosition2 projectileState = new DynamicPosition2(shotPosition, shotVelocity);
+            DynamicPosition2 projectileState = new DynamicPosition2(shotPosition + deltaTime * shotVelocity, shotVelocity);
             return projectileState;
         }
 
