@@ -24,7 +24,7 @@ namespace MTSCombat.Simulation
         private VehicleControls GetAIInput(SimulationState simulationState)
         {
             mTreeEvaluator.ResetAndSetup(simulationState);
-            mTreeEvaluator.Expand(300);
+            mTreeEvaluator.Expand(360);
             VehicleControls chosenControl = mTreeEvaluator.GetBestControl();
             return chosenControl;
         }

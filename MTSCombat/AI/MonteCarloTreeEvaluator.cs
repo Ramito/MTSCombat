@@ -120,9 +120,9 @@ namespace MTSCombat
             payout.InitializeForExpand();
 
             const float kDeltaContraction = 0.9f;
-            const float kDeltaExpansion = 2.1f;
+            const float kDeltaExpansion = 2.2f;
             SimulationState iterationState = simState;
-            const int kIterations = 15;
+            const int kIterations = 14;
             for (int i = 0; i < kIterations; ++i)
             {
                 float randomDeltaFactor = kDeltaContraction + ((kDeltaExpansion - kDeltaContraction) * (float)mRandom.NextDouble());
@@ -243,12 +243,16 @@ namespace MTSCombat
 
             public float CurrentValue(int timesRun, int totalIterations, bool useExplorationTerm)
             {
-                const float beingShotPenalty = 100000f;
-                float penalty = beingShotPenalty * (float)ShotsTaken / (float)timesRun;
+                float penalty = 0;
+                if (ShotsTaken > 0)
+                {
+                    const float beingShotPenalty = 100000f;
+                    penalty = beingShotPenalty * (float)ShotsTaken / (float)timesRun;
+                }
                 float explorationTerm = 0f;
                 if (useExplorationTerm)
                 {
-                    explorationTerm = -(float)Math.Sqrt(Math.Log(totalIterations) / timesRun);
+                    explorationTerm = - 0.5f * (float)Math.Sqrt(Math.Log(totalIterations) / timesRun);
                 }
                 return BestShotDistance / BestShotDistanceForTarget + penalty + explorationTerm;
             }
