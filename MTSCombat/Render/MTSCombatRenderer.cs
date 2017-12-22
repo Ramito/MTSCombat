@@ -27,21 +27,21 @@ namespace MTSCombat
 
         public void RenderSimState(SimulationData simulationData, SimulationState stateToRender)
         {
-            RenderVehicles(simulationData, stateToRender.Vehicles);
-            foreach (var kvp in stateToRender.Projectiles)
+            RenderVehicles(simulationData, stateToRender.Vehicles, stateToRender.IndexToID);
+            foreach (var list in stateToRender.Projectiles)
             {
-                RenderProjectiles(kvp.Value);
+                RenderProjectiles(list);
             }
             mPrimitiveRenderer.Render();
         }
 
-        private void RenderVehicles(SimulationData simData, Dictionary<uint, VehicleState> vehicles)
+        private void RenderVehicles(SimulationData simData, VehicleState[] vehicles, uint[] idMap)
         {
             int colorIndex = 1;
-            foreach (var vehicleKVP in vehicles)
+            for (int i = 0; i < vehicles.Length; ++i)
             {
-                VehiclePrototype prototype = simData.GetPlayerData(vehicleKVP.Key).Prototype;
-                SetVehicleVerticesOnHash(prototype, vehicleKVP.Value);
+                VehiclePrototype prototype = simData.GetVehiclePrototype(idMap[i]);
+                SetVehicleVerticesOnHash(prototype, vehicles[i]);
                 mPrimitiveRenderer.PushPolygon(mVertexHash, sColors[colorIndex]);
                 colorIndex = (colorIndex + 1) % sColors.Length;
                 mVertexHash.Clear();

@@ -17,7 +17,7 @@ namespace MTSCombat
         public const uint kDefaultPlayerID = 0;
         public const uint kDefaultAIID = 1;
 
-        MonteCarloVehicleAI mAI = new MonteCarloVehicleAI();
+        MonteCarloVehicleAI mAI;
 
         public MTSCombatGame(int expectedVehicles, int arenaWidth, int arenaHeight)
         {
@@ -28,41 +28,36 @@ namespace MTSCombat
 
         public uint AddVehicle(VehiclePrototype prototype, VehicleState vehicle)
         {
-            PlayerData playerData = new PlayerData(prototype);
             uint assignedID = RegisteredPlayers;
             ++RegisteredPlayers;
-            SimulationData.RegisterPlayer(assignedID, playerData);
-            ActiveState.Vehicles.Add(assignedID, vehicle);
+            SimulationData.RegisterPlayer(assignedID, prototype);
+            ActiveState.AddVehicle(assignedID, vehicle);
             ActiveState.SetProjectileCount(assignedID, 1);
             return assignedID;
         }
 
         public void Tick(float deltaTime)
         {
+            if (mAI == null)
+            {
+                mAI = new MonteCarloVehicleAI(kDefaultAIID, kDefaultPlayerID, deltaTime, SimulationData);   //TODO: inconsistently assuming delta time fixed here and otherwise elsewhere
+            }
             VehicleControls playerControl;
             if (mActiveInput.TryGetValue(kDefaultPlayerID, out playerControl))
             {
                 StandardPlayerInput playerInput = StandardPlayerInput.ProcessKeyboard(Keyboard.GetState());
-                VehiclePrototype prototype = SimulationData.GetPlayerData(kDefaultPlayerID).Prototype;
+                VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultPlayerID);
                 VehicleDriveControls newDriveControl = prototype.ControlConfig.GetNextFromPlayerInput(playerControl.DriveControls, playerInput, deltaTime);
                 mActiveInput[kDefaultPlayerID] = new VehicleControls(newDriveControl, playerInput.TriggerInput);
             }
             else
             {
-                VehiclePrototype prototype = SimulationData.GetPlayerData(kDefaultPlayerID).Prototype;
+                VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultPlayerID);
                 mActiveInput[kDefaultPlayerID] = new VehicleControls(prototype.ControlConfig.DefaultControl);
             }
-            VehicleControls currentAIControl;
-            if (mActiveInput.TryGetValue(kDefaultAIID, out currentAIControl))
-            {
-                VehicleControls aiControlInput = mAI.ComputeControl(kDefaultAIID, ActiveState, SimulationData, deltaTime);
-                mActiveInput[kDefaultAIID] = aiControlInput;
-            }
-            else
-            {
-                VehiclePrototype prototype = SimulationData.GetPlayerData(kDefaultAIID).Prototype;
-                mActiveInput[kDefaultAIID] = new VehicleControls(prototype.ControlConfig.DefaultControl);
-            }
+            VehicleControls aiControlInput = mAI.ComputeControl(ActiveState);
+            mActiveInput[kDefaultAIID] = aiControlInput;
+
             ActiveState = SimulationProcessor.ProcessState(ActiveState, SimulationData, mActiveInput, deltaTime);
         }
     }

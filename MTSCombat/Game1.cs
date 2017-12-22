@@ -63,8 +63,8 @@ namespace MTSCombat
                 size * MTSCombatRenderer.GetRelativeGunMountLocation(1),
                 size * MTSCombatRenderer.GetRelativeGunMountLocation(2)
             };
-            const float barrelReloadTime = 0.35f; 
-            const float gunSpeed = 375f;
+            const float barrelReloadTime = 1.5f; 
+            const float gunSpeed = 400f;
             GunMount gunMount = new GunMount(new GunData(barrelReloadTime, gunSpeed), gunArray);
             return gunMount;
         }
@@ -92,8 +92,7 @@ namespace MTSCombat
 
         private uint SpawnVehicle(VehiclePrototype prototype, DynamicTransform2 placement)
         {
-            VehicleState initialState = new VehicleState();
-            initialState.SetDriveState(placement, prototype.ControlConfig.DefaultControl);
+            VehicleState initialState = new VehicleState(placement, prototype.ControlConfig.DefaultControl);
             return mMTSGame.AddVehicle(prototype, initialState);
         }
 

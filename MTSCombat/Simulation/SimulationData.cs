@@ -6,26 +6,26 @@ namespace MTSCombat.Simulation
     public sealed class SimulationData
     {
         //Experiment to separate state that will need to be replicated and global data
-        private readonly Dictionary<uint, PlayerData> mDataMap;
+        private readonly Dictionary<uint, VehiclePrototype> mPrototypeMap;
 
         public readonly float ArenaWidth;
         public readonly float ArenaHeight;
 
         public SimulationData(int expectedPlayers, int arenaWidth, int arenaHeight)
         {
-            mDataMap = new Dictionary<uint, PlayerData>(expectedPlayers);
+            mPrototypeMap = new Dictionary<uint, VehiclePrototype>(expectedPlayers);
             ArenaWidth = arenaWidth;
             ArenaHeight = arenaHeight;
         }
 
-        public void RegisterPlayer(uint playerID, PlayerData playerData)
+        public void RegisterPlayer(uint playerID, VehiclePrototype prototype)
         {
-            mDataMap[playerID] = playerData;
+            mPrototypeMap[playerID] = prototype;
         }
 
-        public PlayerData GetPlayerData(uint playerID)
+        public VehiclePrototype GetVehiclePrototype(uint playerID)
         {
-            return mDataMap[playerID];
+            return mPrototypeMap[playerID];
         }
 
         public bool CollisionWithArenaBounds(float size, Vector2 position, out float penetration, out Vector2 collisionNormal)
@@ -65,16 +65,6 @@ namespace MTSCombat.Simulation
                 && (position.Y >= 0f)
                 && (position.X <= ArenaWidth)
                 && (position.Y <= ArenaHeight);
-        }
-    }
-
-    public sealed class PlayerData
-    {
-        public readonly VehiclePrototype Prototype;
-
-        public PlayerData(VehiclePrototype vehiclePrototype)
-        {
-            Prototype = vehiclePrototype;
         }
     }
 }

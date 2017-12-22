@@ -12,7 +12,7 @@ namespace MTSCombat.Simulation
 
         public Orientation2(float angle)
         {
-            mFacingAngle = ((angle % kTwoPi) + kTwoPi) % kTwoPi;
+            mFacingAngle = (angle % kTwoPi);
         }
 
         public Orientation2 RotatedBy(float angle)
