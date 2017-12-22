@@ -24,18 +24,24 @@ namespace MTSCombat.Simulation
         private VehicleControls GetAIInput(SimulationState simulationState)
         {
             mTreeEvaluator.ResetAndSetup(simulationState);
-            mTreeEvaluator.Expand(600);
-            VehicleDriveControls chosenControl = mTreeEvaluator.GetBestControl();
-            return new VehicleControls(chosenControl, false);
+            mTreeEvaluator.Expand(300);
+            VehicleControls chosenControl = mTreeEvaluator.GetBestControl();
+            return chosenControl;
         }
 
         public static float ShotDistance(DynamicTransform2 shooter, GunData gun, DynamicPosition2 target)
         {
+            Vector2 shotPosition = shooter.Position;
             Vector2 shotVelocity = gun.ShotSpeed * shooter.Orientation.Facing + shooter.Velocity;
+            DynamicPosition2 initialProjectileState = new DynamicPosition2(shotPosition, shotVelocity);
+            return ShotDistance(initialProjectileState, target);
+        }
 
-            Vector2 shooterToTarget = target.Position - shooter.Position;
+        public static float ShotDistance(DynamicPosition2 projectile, DynamicPosition2 target)
+        {
+            Vector2 shooterToTarget = target.Position - projectile.Position;
             float currentDistanceSq = shooterToTarget.LengthSquared();
-            Vector2 relativeVelocities = target.Velocity - shotVelocity;
+            Vector2 relativeVelocities = target.Velocity - projectile.Velocity;
             float dot = Vector2.Dot(shooterToTarget, relativeVelocities);
             float relativeVelocityModuleSq = relativeVelocities.LengthSquared();
             float timeToClosest = -dot / relativeVelocityModuleSq;
@@ -49,45 +55,6 @@ namespace MTSCombat.Simulation
             float shotDistanceSq = currentDistanceSq + timeToClosest * ((2f * dot) + (timeToClosest * relativeVelocityModuleSq));
             Debug.Assert(!float.IsInfinity(shotDistanceSq));
             return shotDistanceSq;
-        }
-
-        private bool ShouldShoot(SimulationData simulationData, DynamicTransform2 shooter, GunMount gun, VehicleState targetVehicle, VehiclePrototype targetPrototype, float deltaTime)
-        {
-        //    const uint kShooterID = 0;
-        //    const uint kTargetID = 1;
-        //    SimulationState initialTestState = new SimulationState(1);
-        //    Dictionary<uint, VehicleControls> mockControls = new Dictionary<uint, VehicleControls>(1);
-        //    initialTestState.Vehicles[kTargetID] = targetVehicle;
-        //    DynamicPosition2 projectileState = SimulationProcessor.CreateProjectileState(shooter, gun, 0); //Default barrel
-        //    initialTestState.SetProjectileCount(kShooterID, 1);
-        //    SimulationProcessor.SpawnProjectile(kShooterID, initialTestState, projectileState);
-        //    int trials = 20;
-        //    while (--trials >= 0)
-        //    {
-        //        SimulationState iterationState = initialTestState;
-        //        const int kMaxIterations = 10 * 30;  //Ten seconds at 30 fps
-        //        for (int i = 0; i < kMaxIterations; ++i)
-        //        {
-        //            targetPrototype.ControlConfig.GetPossibleControlChanges(targetVehicle.ControlState, deltaTime, mControlCache);
-        //            int random = mRandom.Next(0, mControlCache.Count);
-        //            mockControls[kTargetID] = new VehicleControls(mControlCache[random]);
-        //            mControlCache.Clear();
-        //            iterationState = SimulationProcessor.ProcessState(iterationState, simulationData, mockControls, deltaTime);
-        //            if (iterationState.RegisteredHits.ContainsKey(kShooterID))
-        //            {
-        //                return true;
-        //            }
-        //            else
-        //            {
-        //                if (iterationState.Projectiles[kShooterID].Count == 0)
-        //                {
-        //                    //Projectile flew off or otherwise expired
-        //                    break;
-        //                }
-        //            }
-        //        }
-        //    }
-            return false;
         }
     }
 }
