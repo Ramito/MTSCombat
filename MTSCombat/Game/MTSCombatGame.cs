@@ -1,6 +1,9 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using MTSCombat.Simulation;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace MTSCombat
 {
@@ -13,11 +16,6 @@ namespace MTSCombat
         private ushort RegisteredPlayers = 0;
         private Dictionary<uint, VehicleControls> mActiveInput;
         public SimulationData SimulationData { get; private set; }
-
-        public const uint kDefaultPlayerID = 0;
-        public const uint kDefaultAIID = 1;
-
-        MonteCarloVehicleAI mAI;
 
         public MTSCombatGame(int expectedVehicles, int arenaWidth, int arenaHeight)
         {
@@ -38,27 +36,47 @@ namespace MTSCombat
 
         public void Tick(float deltaTime)
         {
-            if (mAI == null)
+            if (mAIIterator.Count == 0)
             {
-                mAI = new MonteCarloVehicleAI(kDefaultAIID, kDefaultPlayerID, deltaTime, SimulationData);   //TODO: inconsistently assuming delta time fixed here and otherwise elsewhere
+                CreateAITask(0, 1, deltaTime, 950);
+                CreateAITask(1, 0, deltaTime, 950);
             }
-            VehicleControls playerControl;
-            if (mActiveInput.TryGetValue(kDefaultPlayerID, out playerControl))
-            {
-                StandardPlayerInput playerInput = StandardPlayerInput.ProcessKeyboard(Keyboard.GetState());
-                VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultPlayerID);
-                VehicleDriveControls newDriveControl = prototype.ControlConfig.GetNextFromPlayerInput(playerControl.DriveControls, playerInput, deltaTime);
-                mActiveInput[kDefaultPlayerID] = new VehicleControls(newDriveControl, playerInput.TriggerInput);
-            }
-            else
-            {
-                VehiclePrototype prototype = SimulationData.GetVehiclePrototype(kDefaultPlayerID);
-                mActiveInput[kDefaultPlayerID] = new VehicleControls(prototype.ControlConfig.DefaultControl);
-            }
-            VehicleControls aiControlInput = mAI.ComputeControl(ActiveState);
-            mActiveInput[kDefaultAIID] = aiControlInput;
 
+            foreach (uint id in mAIIterator)
+            {
+                mActiveInput[id] = mControlResults[id].Take();
+            }
             ActiveState = SimulationProcessor.ProcessState(ActiveState, SimulationData, mActiveInput, deltaTime);
+            foreach (uint id in mAIIterator)
+            {
+                mControlRequests[id].Add(ActiveState);  //TODO: Should copy!
+            }
+        }
+
+        private List<uint> mAIIterator = new List<uint>(2);
+        private Dictionary<uint, BlockingCollection<VehicleControls>> mControlResults = new Dictionary<uint, BlockingCollection<VehicleControls>>(2);
+        private Dictionary<uint, BlockingCollection<SimulationState>> mControlRequests = new Dictionary<uint, BlockingCollection<SimulationState>>(2);
+
+        private void CreateAITask(uint aiID, uint targetID, float deltaTime, int iterations)
+        {
+            mAIIterator.Add(aiID);
+            var resultPlacement = new BlockingCollection<VehicleControls>(1);
+            mControlResults[aiID] = resultPlacement;
+            var requestPlacement = new BlockingCollection<SimulationState>(1);
+            mControlRequests[aiID] = requestPlacement;
+            MonteCarloVehicleAI ai = new MonteCarloVehicleAI(aiID, targetID, deltaTime, SimulationData, iterations);   //TODO: inconsistently assuming delta time fixed here and otherwise elsewhere
+            Action aiAction = () =>
+            {
+                while (true)
+                {
+                    SimulationState state = requestPlacement.Take();
+                    VehicleControls controls = ai.ComputeControl(state);
+                    resultPlacement.Add(controls);
+                }
+            };
+            Task aiTask = new Task(aiAction);
+            requestPlacement.Add(ActiveState);
+            aiTask.Start();
         }
     }
 }

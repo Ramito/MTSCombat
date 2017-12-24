@@ -37,10 +37,21 @@ namespace MTSCombat
         {
             mTargetRootState = currentSimState.GetVehicle(mTargetID);
             mEnemyProjectiles.Clear();
-            mEnemyProjectiles.AddRange(currentSimState.GetProjectiles(mTargetID));
 
             VehiclePrototype controlledPrototype = mSimData.GetVehiclePrototype(mControlledID);
             VehicleState controlledState = currentSimState.GetVehicle(mControlledID);
+
+            var projectiles = currentSimState.GetProjectiles(mTargetID);
+            foreach (var projectile in projectiles)
+            {
+                Vector2 relativePosition = controlledState.DynamicTransform.Position - projectile.Position;
+                Vector2 relativeVelocity = controlledState.DynamicTransform.Velocity - projectile.Velocity;
+                if (Vector2.Dot(relativePosition, relativeVelocity) >= 0f)
+                {
+                    mEnemyProjectiles.Add(projectile);
+                }
+            }
+
 
             mOptions.Clear();
             controlledPrototype.ControlConfig.GetPossibleControlChanges(controlledState.ControlState, mDeltaTime, mControlOptionCache);
@@ -76,7 +87,7 @@ namespace MTSCombat
         {
             Option bestOption = GetBestOption(false);
             mOptions.Clear();
-            return new VehicleControls(bestOption.ControlOption.DriveControls, (bestOption.Payout.ShotsLanded > 0));
+            return new VehicleControls(bestOption.ControlOption.DriveControls, ((float)bestOption.Payout.ShotsLanded / bestOption.TimesRun > 0.25f));
         }
 
         private Option GetBestOption(bool exploring)
@@ -119,10 +130,10 @@ namespace MTSCombat
             OptionPayout payout = new OptionPayout();
             payout.InitializeForExpand();
 
-            const float kDeltaContraction = 0.9f;
-            const float kDeltaExpansion = 2.2f;
+            const float kDeltaContraction = 0.75f;
+            const float kDeltaExpansion = 30f;
             SimulationState iterationState = simState;
-            const int kIterations = 14;
+            const int kIterations = 9;
             for (int i = 0; i < kIterations; ++i)
             {
                 float randomDeltaFactor = kDeltaContraction + ((kDeltaExpansion - kDeltaContraction) * (float)mRandom.NextDouble());
@@ -145,16 +156,20 @@ namespace MTSCombat
                 DynamicTransform2 targetDynamicState = targetVehicle.DynamicTransform;
                 GunData targetsGun = targetPrototype.Guns.MountedGun;
 
-                float bestShot = MonteCarloVehicleAI.ShotDistance(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
+                float bestShot = MonteCarloVehicleAI.ShotDistanceSq(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
                 bestShot = Math.Min(payout.BestShotDistance, bestShot);
                 payout.BestShotDistance = bestShot;
 
-                float bestShotForTarget = MonteCarloVehicleAI.ShotDistance(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
+                float bestShotForTarget = MonteCarloVehicleAI.ShotDistanceSq(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
                 bestShotForTarget = Math.Min(payout.BestShotDistanceForTarget, bestShotForTarget);
                 foreach (var projectile in iterationState.GetProjectiles(mTargetID))
                 {
-                    float projectileShotDistance = MonteCarloVehicleAI.ShotDistance(projectile, controlledVehicle.DynamicTransform.DynamicPosition);
-                    bestShotForTarget = Math.Min(projectileShotDistance, bestShotForTarget);
+                    //Experimental: Penalize target shot distance so projectiles create more urgency to avoid
+                    float projectileShotDistanceSq = MonteCarloVehicleAI.ShotDistanceSq(projectile, controlledVehicle.DynamicTransform.DynamicPosition);
+                    if (projectileShotDistanceSq <= (controlledPrototype.VehicleSize * controlledPrototype.VehicleSize))
+                    {
+                        bestShotForTarget -= projectileShotDistanceSq;
+                    }
                 }
                 payout.BestShotDistanceForTarget = bestShotForTarget;
             }
@@ -167,7 +182,7 @@ namespace MTSCombat
             //Add the state resulting from this option, and a mock shot to track hits
             simState.AddVehicle(mControlledID, option.ResultingState);
             simState.SetProjectileCount(mControlledID, 1);
-            DynamicPosition2 mockProjectile = SimulationProcessor.CreateProjectileState(option.ResultingState.DynamicTransform, mSimData.GetVehiclePrototype(mControlledID).Guns, 0);
+            DynamicPosition2 mockProjectile = SimulationProcessor.CreateProjectileState(option.ResultingState.DynamicTransform, mSimData.GetVehiclePrototype(mControlledID).Guns, 0, mDeltaTime);
             simState.GetProjectiles(mControlledID).Add(mockProjectile);
             //Add the existing enemy projectiles, if they have any hope to hit
             simState.SetProjectileCount(mTargetID, mEnemyProjectiles.Count);

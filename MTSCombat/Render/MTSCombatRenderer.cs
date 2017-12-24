@@ -91,8 +91,8 @@ namespace MTSCombat
         {
             Debug.Assert(mVertexHash.Count == 0);
             const float projectileScale = 1f / 30f;
-            const float forwardProportion = 0.1f;
-            const float lateralScale = 0.15f;
+            const float forwardProportion = 0.12f;
+            const float lateralScale = 0.125f;
             Vector2 position = projectileState.Position;
             Vector2 direction = projectileScale * projectileState.Velocity;
             Vector2 lateral = lateralScale * (new Vector2(-direction.Y, direction.X));
