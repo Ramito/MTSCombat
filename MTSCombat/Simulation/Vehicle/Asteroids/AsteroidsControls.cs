@@ -43,10 +43,6 @@ namespace MTSCombat.Simulation
             //Use new orientation so that rotating and accelerating rsults in different outputs than just accelerating!
             Vector2 thrustDirection = resultingDynamicOrientation.Orientation.Facing;
             Vector2 appliedThrust = data.Acceleration * controls.Axis2 * thrustDirection;
-            if (controls.Axis2 < 0f)
-            {
-                appliedThrust *= 0.9f;
-            }
             Vector2 originalVelocity = state.Velocity;
             Vector2 newVelocity = originalVelocity + deltaTime * appliedThrust;
 
