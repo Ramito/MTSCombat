@@ -132,13 +132,13 @@ namespace MTSCombat.Simulation
             return newDynamicTransform;
         }
 
-        private static bool ProjectileHitsVehicle(DynamicTransform2 vehicleTransformState, VehiclePrototype prototype, DynamicPosition2 projectileState, float deltaTime)
+        public static bool ProjectileHitsVehicle(DynamicTransform2 vehicleTransformState, VehiclePrototype prototype, DynamicPosition2 projectileState, float deltaTime)
         {
             Vector2 projectileToVehicle = vehicleTransformState.Position - projectileState.Position;
             float currentDistanceSq = projectileToVehicle.LengthSquared();
             Vector2 relativeVelocities = vehicleTransformState.Velocity - projectileState.Velocity;
             float dot = Vector2.Dot(projectileToVehicle, relativeVelocities);
-            if (dot <= 0f)
+            if (dot >= 0f)
             {
                 return currentDistanceSq <= prototype.VehicleSize * prototype.VehicleSize;
             }

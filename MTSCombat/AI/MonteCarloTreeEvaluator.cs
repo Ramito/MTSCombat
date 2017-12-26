@@ -42,13 +42,18 @@ namespace MTSCombat
             VehicleState controlledState = currentSimState.GetVehicle(mControlledID);
 
             var projectiles = currentSimState.GetProjectiles(mTargetID);
+            //Cache the projectile states for next frame, but onyl those with a chance of hiting
             foreach (var projectile in projectiles)
             {
                 Vector2 relativePosition = controlledState.DynamicTransform.Position - projectile.Position;
                 Vector2 relativeVelocity = controlledState.DynamicTransform.Velocity - projectile.Velocity;
-                if (Vector2.Dot(relativePosition, relativeVelocity) >= 0f)
+                if (Vector2.Dot(relativePosition, relativeVelocity) < 0f)
                 {
-                    mEnemyProjectiles.Add(projectile);
+                    if (!SimulationProcessor.ProjectileHitsVehicle(controlledState.DynamicTransform, controlledPrototype, projectile, mDeltaTime))
+                    {
+                        DynamicPosition2 updatedProjectile = new DynamicPosition2(projectile.Position + mDeltaTime * projectile.Velocity, projectile.Velocity);
+                        mEnemyProjectiles.Add(projectile);
+                    }
                 }
             }
 
@@ -130,10 +135,10 @@ namespace MTSCombat
             OptionPayout payout = new OptionPayout();
             payout.InitializeForExpand();
 
-            const float kDeltaContraction = 0.75f;
-            const float kDeltaExpansion = 30f;
+            const float kDeltaContraction = 1f;
+            const float kDeltaExpansion = 5f;
             SimulationState iterationState = simState;
-            const int kIterations = 9;
+            const int kIterations = 10;
             for (int i = 0; i < kIterations; ++i)
             {
                 float randomDeltaFactor = kDeltaContraction + ((kDeltaExpansion - kDeltaContraction) * (float)mRandom.NextDouble());
@@ -166,12 +171,33 @@ namespace MTSCombat
                 {
                     //Experimental: Penalize target shot distance so projectiles create more urgency to avoid
                     float projectileShotDistanceSq = MonteCarloVehicleAI.ShotDistanceSq(projectile, controlledVehicle.DynamicTransform.DynamicPosition);
-                    if (projectileShotDistanceSq <= (controlledPrototype.VehicleSize * controlledPrototype.VehicleSize))
-                    {
-                        bestShotForTarget -= projectileShotDistanceSq;
-                    }
+                    bestShotForTarget = Math.Min(projectileShotDistanceSq, bestShotForTarget);
                 }
                 payout.BestShotDistanceForTarget = bestShotForTarget;
+            }
+            var remainingOwnProjectiles = iterationState.GetProjectiles(mControlledID);
+            if (remainingOwnProjectiles.Count > 0)
+            {
+                var targetState = iterationState.GetVehicle(mTargetID);
+                foreach (var projectile in remainingOwnProjectiles)
+                {
+                    if (SimulationProcessor.ProjectileHitsVehicle(targetState.DynamicTransform, mSimData.GetVehiclePrototype(mTargetID), projectile, 1000f))
+                    {
+                        payout.ShotsLanded += 1;
+                    }
+                }
+            }
+            var remainingEnemyProjectiles = iterationState.GetProjectiles(mTargetID);
+            if (remainingEnemyProjectiles.Count > 0)
+            {
+                var targetState = iterationState.GetVehicle(mControlledID);
+                foreach (var projectile in remainingEnemyProjectiles)
+                {
+                    if (SimulationProcessor.ProjectileHitsVehicle(targetState.DynamicTransform, mSimData.GetVehiclePrototype(mControlledID), projectile, 1000f))
+                    {
+                        payout.ShotsTaken += 1;
+                    }
+                }
             }
             return payout;
         }
@@ -186,15 +212,7 @@ namespace MTSCombat
             simState.GetProjectiles(mControlledID).Add(mockProjectile);
             //Add the existing enemy projectiles, if they have any hope to hit
             simState.SetProjectileCount(mTargetID, mEnemyProjectiles.Count);
-            foreach (var projectile in mEnemyProjectiles)
-            {
-                Vector2 relativePosition = option.ResultingState.DynamicTransform.Position - projectile.Position;
-                Vector2 relativeVelocity = option.ResultingState.DynamicTransform.Velocity - projectile.Velocity;
-                if (Vector2.Dot(relativePosition,relativeVelocity) > 0f)
-                {
-                    simState.GetProjectiles(mTargetID).AddRange(mEnemyProjectiles);
-                }
-            }
+            simState.GetProjectiles(mTargetID).AddRange(mEnemyProjectiles);
             VehicleState targetRandomState = GetRandomNextState(mTargetRootState, mSimData.GetVehiclePrototype(mTargetID), mRandom, mDeltaTime);
             simState.AddVehicle(mTargetID, targetRandomState);
             return simState;
@@ -261,8 +279,8 @@ namespace MTSCombat
                 float penalty = 0;
                 if (ShotsTaken > 0)
                 {
-                    const float beingShotPenalty = 100000f;
-                    penalty = beingShotPenalty * (float)ShotsTaken / (float)timesRun;
+                    const float beingShotPenalty = 1000000f;
+                    penalty = ShotsTaken *  beingShotPenalty;
                 }
                 float explorationTerm = 0f;
                 if (useExplorationTerm)
