@@ -163,9 +163,9 @@ namespace MTSCombat
             payout.InitializeForExpand();
 
             const float kDeltaContraction = 1f;
-            const float kDeltaExpansion = 1.25f;
+            const float kDeltaExpansion = 3f;
             SimulationState iterationState = simState;
-            const int kIterations = 15;
+            const int kIterations = 16;
             for (int i = 0; i < kIterations; ++i)
             {
                 float randomDeltaFactor = kDeltaContraction + ((kDeltaExpansion - kDeltaContraction) * (float)mRandom.NextDouble());
@@ -202,7 +202,7 @@ namespace MTSCombat
             float ownShotDistance = MonteCarloVehicleAI.ShotDistanceSq(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
             float targetShotDistance = MonteCarloVehicleAI.ShotDistanceSq(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
             float positionalValue = ownShotDistance / targetShotDistance;
-            payout.AccumulatedPositioningValue += positionalValue;
+            payout.AccumulatedPositioningValue = Math.Max(payout.AccumulatedPositioningValue, positionalValue); //+= positionalValue;
         }
 
         private void ComputeResidueRolloutHits(SimulationState finalState, ref OptionPayout payout)
