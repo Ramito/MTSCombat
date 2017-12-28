@@ -112,8 +112,9 @@ namespace MTSCombat
                 Option bestHitlessOption = null;
                 foreach (var impactlessOption in mImpactLessOptions)
                 {
-                    float accumulated = impactlessOption.Payout.AccumulatedPositioningValue;
-                    float average = accumulated / (float)impactlessOption.TimesRun;
+                    float ownAccumulated = impactlessOption.Payout.OwnBestPositionValue;
+                    float targetAccumulated = impactlessOption.Payout.TargetBestPositionValue;
+                    float average = ownAccumulated / targetAccumulated; //Averaging both by the same number of run times yields the same effect!
                     average -= (explorationTerm / impactlessOption.TimesRun);
                     if (average <= bestPositionValue)
                     {
@@ -200,9 +201,9 @@ namespace MTSCombat
             GunData targetsGun = targetPrototype.Guns.MountedGun;
 
             float ownShotDistance = MonteCarloVehicleAI.ShotDistanceSq(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
+            payout.OwnBestPositionValue = Math.Min(payout.OwnBestPositionValue, ownShotDistance);
             float targetShotDistance = MonteCarloVehicleAI.ShotDistanceSq(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
-            float positionalValue = ownShotDistance / targetShotDistance;
-            payout.AccumulatedPositioningValue = Math.Max(payout.AccumulatedPositioningValue, positionalValue); //+= positionalValue;
+            payout.TargetBestPositionValue = Math.Min(payout.TargetBestPositionValue, targetShotDistance);
         }
 
         private void ComputeResidueRolloutHits(SimulationState finalState, ref OptionPayout payout)
@@ -295,14 +296,16 @@ namespace MTSCombat
             public int ShotsTaken;  //Deterministic
             public int ShotsLanded; //Random
             public float ProjectileThreat;
-            public float AccumulatedPositioningValue;
+            public float OwnBestPositionValue;
+            public float TargetBestPositionValue;
 
             public void InitializeForExpand()
             {
                 ShotsTaken = 0;
                 ShotsLanded = 0;
                 ProjectileThreat = 0f;
-                AccumulatedPositioningValue = 0f;
+                OwnBestPositionValue = float.MaxValue;
+                TargetBestPositionValue = float.MaxValue;
             }
 
             public void InitializeForAccumulation()
@@ -310,7 +313,8 @@ namespace MTSCombat
                 ShotsTaken = int.MaxValue;
                 ShotsLanded = 0;
                 ProjectileThreat = float.MaxValue;
-                AccumulatedPositioningValue = 0f;
+                OwnBestPositionValue = 0f;
+                TargetBestPositionValue = 0f;
             }
 
             public void Accumulate(OptionPayout otherPayout)
@@ -318,7 +322,8 @@ namespace MTSCombat
                 ShotsTaken = Math.Min(otherPayout.ShotsTaken, ShotsTaken);
                 ShotsLanded += otherPayout.ShotsLanded;
                 ProjectileThreat = Math.Min(ProjectileThreat, otherPayout.ProjectileThreat);
-                AccumulatedPositioningValue += otherPayout.AccumulatedPositioningValue;
+                OwnBestPositionValue += otherPayout.OwnBestPositionValue;
+                TargetBestPositionValue += otherPayout.TargetBestPositionValue;
             }
         }
     }
