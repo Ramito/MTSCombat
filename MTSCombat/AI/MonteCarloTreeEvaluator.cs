@@ -92,7 +92,7 @@ namespace MTSCombat
         {
             Option bestOption = GetBestOption(false, false);
             mOptions.Clear();
-            return new VehicleControls(bestOption.ControlOption.DriveControls, ((float)bestOption.Payout.ShotsLanded / bestOption.TimesRun > 0.05f));
+            return new VehicleControls(bestOption.ControlOption.DriveControls, ((float)bestOption.Payout.ShotsLanded / bestOption.TimesRun > 0.1f));
         }
 
         List<Option> mImpactLessOptions = new List<Option>(); //TODO TODO
@@ -112,13 +112,11 @@ namespace MTSCombat
                 Option bestHitlessOption = null;
                 foreach (var impactlessOption in mImpactLessOptions)
                 {
-                    float ownAccumulated = impactlessOption.Payout.OwnBestPositionValue;
-                    float targetAccumulated = impactlessOption.Payout.TargetBestPositionValue;
-                    float average = ownAccumulated / targetAccumulated; //Averaging both by the same number of run times yields the same effect!
-                    average -= (explorationTerm / impactlessOption.TimesRun);
-                    if (average <= bestPositionValue)
+                    float positionValue = impactlessOption.Payout.PositionValue / impactlessOption.TimesRun;
+                    positionValue -= (explorationTerm / (float)Math.Sqrt(impactlessOption.TimesRun));
+                    if (positionValue <= bestPositionValue)
                     {
-                        bestPositionValue = average;
+                        bestPositionValue = positionValue;
                         bestHitlessOption = impactlessOption;
                     }
                 }
@@ -127,20 +125,13 @@ namespace MTSCombat
             }
             else
             {
-                int leastHits = int.MaxValue;
                 float bestThreat = float.PositiveInfinity;
                 Option bestOption = null;
                 foreach (var option in mOptions)
                 {
                     float threat = option.Payout.ProjectileThreat;
-                    threat += (explorationTerm / option.TimesRun);
-                    if (option.Payout.ShotsTaken < leastHits)
-                    {
-                        leastHits = option.Payout.ShotsTaken;
-                        bestThreat = threat;
-                        bestOption = option;
-                    }
-                    else if ((option.Payout.ShotsTaken == leastHits) && (threat <= bestThreat))
+                    threat += (explorationTerm / (float)Math.Sqrt(option.TimesRun));
+                    if (threat <= bestThreat)
                     {
                         bestThreat = threat;
                         bestOption = option;
@@ -162,24 +153,19 @@ namespace MTSCombat
         {
             OptionPayout payout = new OptionPayout();
             payout.InitializeForExpand();
-
-            const float kDeltaContraction = 1f;
-            const float kDeltaExpansion = 3f;
             SimulationState iterationState = simState;
-            const int kIterations = 16;
+            const int kIterations = 26;
             for (int i = 0; i < kIterations; ++i)
             {
-                float randomDeltaFactor = kDeltaContraction + ((kDeltaExpansion - kDeltaContraction) * (float)mRandom.NextDouble());
-                float randomDelta = randomDeltaFactor * mDeltaTime;
                 VehicleState controlledVehicle = iterationState.GetVehicle(mControlledID);
                 VehiclePrototype controlledPrototype = mSimData.GetVehiclePrototype(mControlledID);
-                mControlInputMock[mControlledID] = new VehicleControls(GetRandomControl(controlledVehicle, controlledPrototype, mRandom, randomDelta));
+                mControlInputMock[mControlledID] = new VehicleControls(GetRandomControl(controlledVehicle, controlledPrototype, mRandom, mDeltaTime));
 
                 VehicleState targetVehicle = iterationState.GetVehicle(mTargetID);
                 VehiclePrototype targetPrototype = mSimData.GetVehiclePrototype(mTargetID);
-                mControlInputMock[mTargetID] = new VehicleControls(GetRandomControl(targetVehicle, targetPrototype, mRandom, randomDelta));
+                mControlInputMock[mTargetID] = new VehicleControls(GetRandomControl(targetVehicle, targetPrototype, mRandom, mDeltaTime));
 
-                iterationState = SimulationProcessor.ProcessState(iterationState, mSimData, mControlInputMock, randomDelta);
+                iterationState = SimulationProcessor.ProcessState(iterationState, mSimData, mControlInputMock, mDeltaTime);
 
                 EvaluateIterationPayout(iterationState, ref payout, controlledVehicle.DynamicTransform, controlledPrototype, targetVehicle.DynamicTransform, targetPrototype);
             }
@@ -201,9 +187,9 @@ namespace MTSCombat
             GunData targetsGun = targetPrototype.Guns.MountedGun;
 
             float ownShotDistance = MonteCarloVehicleAI.ShotDistanceSq(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
-            payout.OwnBestPositionValue = Math.Min(payout.OwnBestPositionValue, ownShotDistance);
             float targetShotDistance = MonteCarloVehicleAI.ShotDistanceSq(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
-            payout.TargetBestPositionValue = Math.Min(payout.TargetBestPositionValue, targetShotDistance);
+            float currentPositionValue = ownShotDistance / targetShotDistance;
+            payout.PositionValue = Math.Max(currentPositionValue, payout.PositionValue);
         }
 
         private void ComputeResidueRolloutHits(SimulationState finalState, ref OptionPayout payout)
@@ -296,16 +282,14 @@ namespace MTSCombat
             public int ShotsTaken;  //Deterministic
             public int ShotsLanded; //Random
             public float ProjectileThreat;
-            public float OwnBestPositionValue;
-            public float TargetBestPositionValue;
+            public float PositionValue;
 
             public void InitializeForExpand()
             {
                 ShotsTaken = 0;
                 ShotsLanded = 0;
                 ProjectileThreat = 0f;
-                OwnBestPositionValue = float.MaxValue;
-                TargetBestPositionValue = float.MaxValue;
+                PositionValue = float.MinValue;
             }
 
             public void InitializeForAccumulation()
@@ -313,8 +297,7 @@ namespace MTSCombat
                 ShotsTaken = int.MaxValue;
                 ShotsLanded = 0;
                 ProjectileThreat = float.MaxValue;
-                OwnBestPositionValue = 0f;
-                TargetBestPositionValue = 0f;
+                PositionValue = 0;
             }
 
             public void Accumulate(OptionPayout otherPayout)
@@ -322,8 +305,7 @@ namespace MTSCombat
                 ShotsTaken = Math.Min(otherPayout.ShotsTaken, ShotsTaken);
                 ShotsLanded += otherPayout.ShotsLanded;
                 ProjectileThreat = Math.Min(ProjectileThreat, otherPayout.ProjectileThreat);
-                OwnBestPositionValue += otherPayout.OwnBestPositionValue;
-                TargetBestPositionValue += otherPayout.TargetBestPositionValue;
+                PositionValue += otherPayout.PositionValue;
             }
         }
     }
