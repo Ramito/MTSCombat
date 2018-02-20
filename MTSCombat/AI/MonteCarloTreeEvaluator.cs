@@ -15,6 +15,7 @@ namespace MTSCombat
         private VehicleState mTargetRootState;
         private readonly List<DynamicPosition2> mEnemyProjectiles;
         private readonly List<VehicleDriveControls>  mControlOptionCache;
+        private readonly List<Option> mImpactLessOptions = new List<Option>(); //TODO TODO
         private readonly List<Option> mOptions;
         private readonly Dictionary<uint, VehicleControls> mControlInputMock;
         private readonly Random mRandom = new Random();
@@ -94,8 +95,7 @@ namespace MTSCombat
             mOptions.Clear();
             return new VehicleControls(bestOption.ControlOption.DriveControls, ((float)bestOption.Payout.ShotsLanded / bestOption.TimesRun > 0.1f));
         }
-
-        List<Option> mImpactLessOptions = new List<Option>(); //TODO TODO
+        
         private Option GetBestOption(bool exploring)
         {
             foreach (var option in mOptions)
