@@ -82,7 +82,7 @@ namespace MTSCombat
             mIterations = 1;
             while(mIterations < iterations)
             {
-                Option option = GetBestOption(true, true);
+                Option option = GetBestOption(true);
                 ExpandOption(option);
                 ++mIterations;
             }
@@ -90,22 +90,22 @@ namespace MTSCombat
 
         public VehicleControls GetBestControl()
         {
-            Option bestOption = GetBestOption(false, false);
+            Option bestOption = GetBestOption(false);
             mOptions.Clear();
             return new VehicleControls(bestOption.ControlOption.DriveControls, ((float)bestOption.Payout.ShotsLanded / bestOption.TimesRun > 0.1f));
         }
 
         List<Option> mImpactLessOptions = new List<Option>(); //TODO TODO
-        private Option GetBestOption(bool exploring, bool stillExpanding)
+        private Option GetBestOption(bool exploring)
         {
             foreach (var option in mOptions)
             {
-                if (option.Payout.ShotsTaken == 0)
+                if (exploring || (option.Payout.ShotsTaken == 0))
                 {
                     mImpactLessOptions.Add(option);
                 }
             }
-            float explorationTerm = (stillExpanding)? (float)Math.Sqrt(2.0 * Math.Log(mIterations)) : 0f;
+            float explorationTerm = (exploring) ? (float)Math.Sqrt(2.0 * Math.Log(mIterations)) : 0f;
             if (mImpactLessOptions.Count > 0)
             {
                 float bestPositionValue = float.PositiveInfinity;
@@ -116,6 +116,7 @@ namespace MTSCombat
                     positionValue -= (explorationTerm / (float)Math.Sqrt(impactlessOption.TimesRun));
                     if (positionValue <= bestPositionValue)
                     {
+                        //TODO: Choose option closest to previous control in case f tie!?
                         bestPositionValue = positionValue;
                         bestHitlessOption = impactlessOption;
                     }
@@ -154,7 +155,7 @@ namespace MTSCombat
             OptionPayout payout = new OptionPayout();
             payout.InitializeForExpand();
             SimulationState iterationState = simState;
-            const int kIterations = 26;
+            const int kIterations = 22;
             for (int i = 0; i < kIterations; ++i)
             {
                 VehicleState controlledVehicle = iterationState.GetVehicle(mControlledID);
@@ -188,8 +189,8 @@ namespace MTSCombat
 
             float ownShotDistance = MonteCarloVehicleAI.ShotDistanceSq(controlledDynamicState, controlledGun, targetDynamicState.DynamicPosition);
             float targetShotDistance = MonteCarloVehicleAI.ShotDistanceSq(targetDynamicState, targetsGun, controlledDynamicState.DynamicPosition);
-            float currentPositionValue = ownShotDistance / targetShotDistance;
-            payout.PositionValue = Math.Max(currentPositionValue, payout.PositionValue);
+            float currentPositionValue = (ownShotDistance + 0.001f) / (targetShotDistance + 0.001f);
+            payout.PositionValue = Math.Min(currentPositionValue, payout.PositionValue);
         }
 
         private void ComputeResidueRolloutHits(SimulationState finalState, ref OptionPayout payout)
@@ -289,7 +290,7 @@ namespace MTSCombat
                 ShotsTaken = 0;
                 ShotsLanded = 0;
                 ProjectileThreat = 0f;
-                PositionValue = float.MinValue;
+                PositionValue = float.MaxValue;
             }
 
             public void InitializeForAccumulation()
